@@ -62,10 +62,16 @@ public class Dlu_supermatrix {
 	    int    rowind[]; /* pointer to array of row indices of the nonzeros */
 	    int    colptr[]; /* pointer to array of beginning of columns in nzval[]
 			       and rowind[]  */
-	                    /* Note:
+	            /* Note:
 			       Zero-based indexing is used;
 			       colptr[] has ncol+1 entries, the last one pointing
 			       beyond the last column, so that colptr[ncol] = nnz. */
+	}
+
+	/* Stype == SLU_DN */
+	public static class DNformat {
+	    int lda;    /* leading dimension */
+	    double nzval[];  /* array of size lda*ncol to represent a dense matrix */
 	}
 
 }

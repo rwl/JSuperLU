@@ -21,11 +21,71 @@
  */
 package lu.jsuper;
 
+import lu.jsuper.Dlu_slu_util.Dlu_superlu_options_t;
+import lu.jsuper.Dlu_slu_util.SuperLUStat_t;
+import lu.jsuper.Dlu_superlu_enum_consts.IterRefine_t;
+import lu.jsuper.Dlu_superlu_enum_consts.PhaseType;
+import lu.jsuper.Dlu_superlu_enum_consts.colperm_t;
+import lu.jsuper.Dlu_superlu_enum_consts.fact_t;
+import lu.jsuper.Dlu_superlu_enum_consts.trans_t;
+import lu.jsuper.Dlu_superlu_enum_consts.yes_no_t;
+
+import static lu.jsuper.Dlu_sp_ienv.sp_ienv;
+import static lu.jsuper.Dlu_slu_util.SUPERLU_MAX;
+import static lu.jsuper.Dlu_memory.intCalloc;
+
+
 public class Dlu_util {
+
+	public static int PRNTlevel = 0;
 
 	public static void superlu_abort_and_exit(String msg) {
 		System.err.print(msg);
 		System.exit(-1);
+	}
+
+	/*! \brief Set the default values for the options argument.
+	 */
+	public static void set_default_options(Dlu_superlu_options_t options) {
+	    options.Fact = fact_t.DOFACT;
+	    options.Equil = yes_no_t.YES;
+	    options.ColPerm = colperm_t.COLAMD;
+	    options.Trans = trans_t.NOTRANS;
+	    options.IterRefine = IterRefine_t.NOREFINE;
+	    options.DiagPivotThresh = 1.0;
+	    options.SymmetricMode = yes_no_t.NO;
+	    options.PivotGrowth = yes_no_t.NO;
+	    options.ConditionNumber = yes_no_t.NO;
+	    options.PrintStat = yes_no_t.YES;
+	}
+
+	public static void StatInit(SuperLUStat_t stat) {
+		int i, w, panel_size, relax;
+
+	    panel_size = sp_ienv(1);
+	    relax = sp_ienv(2);
+	    w = SUPERLU_MAX(panel_size, relax);
+	    stat.panel_histo = intCalloc(w+1);
+	    stat.utime = new double[PhaseType.NPHASES.ordinal()];
+	    stat.ops = new float[PhaseType.NPHASES.ordinal()];
+	    for (i = 0; i < PhaseType.NPHASES.ordinal(); ++i) {
+	        stat.utime[i] = 0.;
+	        stat.ops[i] = 0.f;
+	    }
+	    stat.TinyPivots = 0;
+	    stat.RefineSteps = 0;
+	    stat.expansions = 0;
+		if ( PRNTlevel >= 1 ) {
+		    System.out.printf(".. parameters in sp_ienv():\n");
+		    System.out.printf("\t 1: panel size \t %4d \n" +
+		           "\t 2: relax      \t %4d \n" +
+		           "\t 3: max. super \t %4d \n" +
+		           "\t 4: row-dim 2D \t %4d \n" +
+		           "\t 5: col-dim 2D \t %4d \n" +
+		           "\t 6: fill ratio \t %4d \n",
+			   sp_ienv(1), sp_ienv(2), sp_ienv(3),
+			   sp_ienv(4), sp_ienv(5), sp_ienv(6));
+		}
 	}
 
 }

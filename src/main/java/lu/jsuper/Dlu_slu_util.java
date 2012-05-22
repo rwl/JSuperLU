@@ -33,6 +33,15 @@ public class Dlu_slu_util {
 		}
 		USER_ABORT(msg);
 	}
+
+	public static int SUPERLU_MAX(int x, int y) {
+		return (x) > (y) ? (x) : (y);
+	}
+
+	public static int SUPERLU_MIN(int x, int y) {
+		return (x) < (y) ? (x) : (y);
+	}
+
 	/**
 	 *-- This contains the options used to control the solution process.
 	 *

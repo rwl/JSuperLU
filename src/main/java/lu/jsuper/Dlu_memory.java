@@ -15,4 +15,16 @@ public class Dlu_memory {
 		return (buf);
 	}
 
+	public static int[] intCalloc(int n) {
+		int buf[] = null;
+		int i;
+		try {
+			buf = new int[n];
+		} catch (OutOfMemoryError e) {
+			ABORT("SUPERLU_MALLOC fails for buf in intCalloc()", e);
+		}
+	    for (i = 0; i < n; ++i) buf[i] = 0;
+	    return (buf);
+	}
+
 }

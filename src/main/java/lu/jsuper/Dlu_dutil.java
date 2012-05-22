@@ -21,6 +21,7 @@
  */
 package lu.jsuper;
 
+import lu.jsuper.Dlu_supermatrix.DNformat;
 import lu.jsuper.Dlu_supermatrix.Dtype_t;
 import lu.jsuper.Dlu_supermatrix.Mtype_t;
 import lu.jsuper.Dlu_supermatrix.Stype_t;
@@ -49,6 +50,25 @@ public class Dlu_dutil {
 	    Astore.colptr = colptr;
 
 	    return A;
+	}
+
+	public static SuperMatrix dCreate_Dense_Matrix(int m, int n, double x[],
+			int ldx, Stype_t stype, Dtype_t dtype, Mtype_t mtype) {
+	    DNformat Xstore;
+
+	    SuperMatrix X = new SuperMatrix();
+
+	    X.Stype = stype;
+	    X.Dtype = dtype;
+	    X.Mtype = mtype;
+	    X.nrow = m;
+	    X.ncol = n;
+	    X.Store = new DNformat();
+	    Xstore = (DNformat) X.Store;
+	    Xstore.lda = ldx;
+	    Xstore.nzval = x;
+
+	    return X;
 	}
 
 }

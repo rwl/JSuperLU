@@ -13,6 +13,7 @@ package lu.jsuper.test;
 import lu.jsuper.Dlu_slu_util.Dlu_superlu_options_t;
 import lu.jsuper.Dlu_slu_util.SuperLUStat_t;
 import lu.jsuper.Dlu_supermatrix;
+import lu.jsuper.Dlu_superlu_enum_consts.colperm_t;
 import lu.jsuper.Dlu_supermatrix.Dtype_t;
 import lu.jsuper.Dlu_supermatrix.Mtype_t;
 import lu.jsuper.Dlu_supermatrix.Stype_t;
@@ -21,6 +22,9 @@ import lu.jsuper.Dlu_supermatrix.SuperMatrix;
 import static lu.jsuper.Dlu_dmemory.doubleMalloc;
 import static lu.jsuper.Dlu_memory.intMalloc;
 import static lu.jsuper.Dlu_dutil.dCreate_CompCol_Matrix;
+import static lu.jsuper.Dlu_dutil.dCreate_Dense_Matrix;
+import static lu.jsuper.Dlu_util.StatInit;
+import static lu.jsuper.Dlu_util.set_default_options;
 
 
 public class Dlu_superlu {
@@ -42,8 +46,8 @@ public class Dlu_superlu {
 	    int      perm_r[]; /* row permutations from partial pivoting */
 	    int      perm_c[]; /* column permutation vector */
 	    int      nrhs, info, i, m, n, nnz, permc_spec;
-	    Dlu_superlu_options_t options;
-	    SuperLUStat_t stat;
+	    Dlu_superlu_options_t options = new Dlu_superlu_options_t();
+	    SuperLUStat_t stat = new SuperLUStat_t();
 
 	    /* Initialize matrix A. */
 	    m = n = 5;
@@ -60,8 +64,28 @@ public class Dlu_superlu {
 	    xa[0] = 0; xa[1] = 3; xa[2] = 6; xa[3] = 8; xa[4] = 10; xa[5] = 12;
 
 	    /* Create matrix A in the format expected by SuperLU. */
-	    A = dCreate_CompCol_Matrix(m, n, nnz, a, asub, xa,
-	    		Stype_t.SLU_NC, Dtype_t.SLU_D, Mtype_t.SLU_GE);
+	    A = dCreate_CompCol_Matrix(m, n, nnz, a, asub, xa, Stype_t.SLU_NC,
+	    		Dtype_t.SLU_D, Mtype_t.SLU_GE);
+
+	    /* Create right-hand side matrix B. */
+	    nrhs = 1;
+	    rhs = doubleMalloc(m * nrhs);
+	    for (i = 0; i < m; ++i) rhs[i] = 1.0;
+	    B = dCreate_Dense_Matrix(m, nrhs, rhs, m, Stype_t.SLU_DN,
+	    		Dtype_t.SLU_D, Mtype_t.SLU_GE);
+
+	    perm_r = intMalloc(m);
+	    perm_c = intMalloc(n);
+
+	    /* Set the default input options. */
+	    set_default_options(options);
+	    options.ColPerm = colperm_t.NATURAL;
+
+	    /* Initialize the statistics variables. */
+	    StatInit(stat);
+
+	    /* Solve the linear system. */
+	    dgssv(&options, &A, perm_c, perm_r, &L, &U, &B, &stat, &info);
 	}
 
 }
