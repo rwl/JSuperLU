@@ -6,8 +6,8 @@
  * October 1, 2010
  *
  */
-
 package lu.jsuper;
+
 
 public class Dlu_superlu_enum_consts {
 

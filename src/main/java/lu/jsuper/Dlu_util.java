@@ -1,4 +1,4 @@
-/*! @file util.c
+/*! @file Dlu_util.java
  * \brief Utility functions
  *
  * <pre>

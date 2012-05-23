@@ -12,7 +12,6 @@ package lu.jsuper.test;
 
 import lu.jsuper.Dlu_slu_util.Dlu_superlu_options_t;
 import lu.jsuper.Dlu_slu_util.SuperLUStat_t;
-import lu.jsuper.Dlu_supermatrix;
 import lu.jsuper.Dlu_superlu_enum_consts.colperm_t;
 import lu.jsuper.Dlu_supermatrix.Dtype_t;
 import lu.jsuper.Dlu_supermatrix.Mtype_t;
@@ -25,6 +24,7 @@ import static lu.jsuper.Dlu_dutil.dCreate_CompCol_Matrix;
 import static lu.jsuper.Dlu_dutil.dCreate_Dense_Matrix;
 import static lu.jsuper.Dlu_util.StatInit;
 import static lu.jsuper.Dlu_util.set_default_options;
+import static lu.jsuper.Dlu_dgssv.dgssv;
 
 
 public class Dlu_superlu {
@@ -39,13 +39,16 @@ public class Dlu_superlu {
 	 *
 	 */
 	public static void main(String[] args) {
-	    SuperMatrix A, L, U, B;
+	    SuperMatrix A, B;
+	    SuperMatrix[] L = new SuperMatrix[1];
+	    SuperMatrix[] U = new SuperMatrix[1];
 	    double   a[], rhs[];
 	    double   s, u, p, e, r, l;
 	    int      asub[], xa[];
 	    int      perm_r[]; /* row permutations from partial pivoting */
 	    int      perm_c[]; /* column permutation vector */
-	    int      nrhs, info, i, m, n, nnz, permc_spec;
+	    int      nrhs, i, m, n, nnz;
+	    int[] info = new int[1];
 	    Dlu_superlu_options_t options = new Dlu_superlu_options_t();
 	    SuperLUStat_t stat = new SuperLUStat_t();
 
@@ -85,7 +88,7 @@ public class Dlu_superlu {
 	    StatInit(stat);
 
 	    /* Solve the linear system. */
-	    dgssv(&options, &A, perm_c, perm_r, &L, &U, &B, &stat, &info);
+	    dgssv(options, A, perm_c, perm_r, L, U, B, stat, info);
 	}
 
 }

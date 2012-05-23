@@ -1,4 +1,4 @@
-/*! @file sp_ienv.c
+/*! @file Dlu_sp_ienv.java
  * \brief Chooses machine-dependent parameters for the local environment.
  *
  * <pre>
@@ -8,7 +8,6 @@
  * November, 2010
  * </pre>
 */
-
 package lu.jsuper;
 
 import static lu.jsuper.Dlu_xerbla.xerbla_;

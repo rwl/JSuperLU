@@ -1,7 +1,8 @@
-/*! @file supermatrix.h
+/*! @file Dlu_supermatrix.java
  * \brief Defines matrix types
  */
 package lu.jsuper;
+
 
 public class Dlu_supermatrix {
 
@@ -66,6 +67,19 @@ public class Dlu_supermatrix {
 			       Zero-based indexing is used;
 			       colptr[] has ncol+1 entries, the last one pointing
 			       beyond the last column, so that colptr[ncol] = nnz. */
+	}
+
+	/* Stype == SLU_NR */
+	public static class NRformat {
+	    int    nnz;	    /* number of nonzeros in the matrix */
+	    double nzval[]; /* pointer to array of nonzero values, packed by raw */
+	    int  colind[];  /* pointer to array of columns indices of the nonzeros */
+	    int  rowptr[];  /* pointer to array of beginning of rows in nzval[]
+			       and colind[]  */
+	                    /* Note:
+			       Zero-based indexing is used;
+			       rowptr[] has nrow+1 entries, the last one pointing
+			       beyond the last row, so that rowptr[nrow] = nnz. */
 	}
 
 	/* Stype == SLU_DN */

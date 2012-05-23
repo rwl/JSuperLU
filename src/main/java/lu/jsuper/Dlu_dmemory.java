@@ -1,3 +1,12 @@
+/*! @file Dlu_dmemory.java
+ * \brief Memory details
+ *
+ * <pre>
+ * -- SuperLU routine (version 4.0) --
+ * Lawrence Berkeley National Laboratory.
+ * June 30, 2009
+ * </pre>
+ */
 package lu.jsuper;
 
 import static lu.jsuper.Dlu_slu_util.ABORT;

@@ -1,3 +1,12 @@
+/** @file Dlu_slu_util.java
+ * \brief Utility header file
+ *
+ * -- SuperLU routine (version 4.1) --
+ * Univ. of California Berkeley, Xerox Palo Alto Research Center,
+ * and Lawrence Berkeley National Lab.
+ * November, 2010
+ *
+ */
 package lu.jsuper;
 
 import lu.jsuper.Dlu_superlu_enum_consts.IterRefine_t;

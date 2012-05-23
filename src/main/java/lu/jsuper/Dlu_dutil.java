@@ -1,4 +1,4 @@
-/*! @file dutil.c
+/*! @file Dlu_dutil.java
  * \brief Matrix utility functions
  *
  * <pre>
