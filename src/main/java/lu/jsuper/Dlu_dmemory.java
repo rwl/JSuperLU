@@ -313,6 +313,63 @@ public class Dlu_dmemory {
 	    dfill (tempv[0], NUM_TEMPV(m,panel_size,maxsuper,rowblk), zero);
 	}
 
+	/**! \brief Expand the data structures for L and U during the factorization.
+	 *
+	 * <pre>
+	 * Return value:   0 - successful return
+	 *               > 0 - number of bytes allocated when run out of space
+	 * </pre>
+	 */
+	public static int dLUMemXpand(
+		   int jcol,
+		   int next,          /* number of elements currently in the factors */
+		   MemType mem_type,  /* which type of memory to expand  */
+		   int maxlen[],      /* modified - maximum length of a data structure */
+		   GlobalLU_t Glu     /* modified - global LU data structures */
+		   )
+	{
+	    double new_mem[];
+
+	    if (DEBUG)
+	    System.out.printf("dLUMemXpand(): jcol %d, next %d, maxlen %d, MemType %d\n",
+		   jcol, next, maxlen[0], mem_type);
+
+	    if (mem_type == MemType.USUB)
+	    	new_mem = dexpand(maxlen, mem_type, next, 1, Glu);
+	    else
+	    	new_mem = dexpand(maxlen, mem_type, next, 0, Glu);
+
+	    if ( new_mem == null ) {
+			int    nzlmax  = Glu.nzlmax;
+			int    nzumax  = Glu.nzumax;
+			int    nzlumax = Glu.nzlumax;
+	    	System.err.printf("Can't expand MemType %d: jcol %d\n", mem_type, jcol);
+	    	return (dmemory_usage(nzlmax, nzumax, nzlumax, Glu.n) + Glu.n);
+	    }
+
+	    switch ( mem_type ) {
+	      case LUSUP:
+		Glu.lusup   = (double []) new_mem;
+		Glu.nzlumax = maxlen[0];
+		break;
+	      case UCOL:
+		Glu.ucol   = (double []) new_mem;
+		Glu.nzumax = maxlen[0];
+		break;
+	      case LSUB:
+		Glu.lsub   = (int []) new_mem;
+		Glu.nzlmax = maxlen[0];
+		break;
+	      case USUB:
+		Glu.usub   = (int []) new_mem;
+		Glu.nzumax = maxlen[0];
+		break;
+	    }
+
+	    return 0;
+
+	}
+
 	public static void copy_mem_double(int howmany, double old[], double new_[])
 	{
 	    int i;

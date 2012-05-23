@@ -24,6 +24,7 @@ package lu.jsuper;
 import lu.jsuper.Dlu_slu_ddefs.GlobalLU_t;
 import lu.jsuper.Dlu_slu_util.Dlu_superlu_options_t;
 import lu.jsuper.Dlu_slu_util.SuperLUStat_t;
+import lu.jsuper.Dlu_superlu_enum_consts.MemType;
 import lu.jsuper.Dlu_superlu_enum_consts.PhaseType;
 import lu.jsuper.Dlu_superlu_enum_consts.fact_t;
 import lu.jsuper.Dlu_superlu_enum_consts.yes_no_t;
@@ -46,11 +47,13 @@ import static lu.jsuper.Dlu_dutil.dCreate_CompCol_Matrix;
 
 import static lu.jsuper.Dlu_dmemory.dLUMemInit;
 import static lu.jsuper.Dlu_dmemory.dSetRWork;
+import static lu.jsuper.Dlu_dmemory.dLUMemXpand;
 import static lu.jsuper.Dlu_memory.SetIWork;
 import static lu.jsuper.Dlu_memory.intMalloc;
 
 import static lu.jsuper.Dlu_heap_relax_snode.heap_relax_snode;
 import static lu.jsuper.Dlu_relax_snode.relax_snode;
+import static lu.jsuper.Dlu_dsnode_dfs.dsnode_dfs;
 
 
 public class Dlu_dgstrf {
@@ -235,7 +238,7 @@ public class Dlu_dgstrf {
 	    int       xa_begin[], xa_end[];
 	    int       xsup[], supno[];
 	    int       xlsub[], xlusup[], xusub[];
-	    int       nzlumax;
+	    int       nzlumax[] = new int[1];
 	    double fill_ratio = sp_ienv(6);  /* estimated fill ratio */
 
 	    /* Local scalars */
@@ -320,7 +323,7 @@ public class Dlu_dgstrf {
 		     * -------------------------------------- */
 		    /* Determine the union of the row structure of the snode */
 		    if ( (info[0] = dsnode_dfs(jcol, kcol, asub, xa_begin, xa_end,
-					    xprune, marker, &Glu)) != 0 )
+					    xprune[0], marker[0], Glu)) != 0 )
 			return;
 
 	        nextu    = xusub[jcol];
@@ -328,9 +331,10 @@ public class Dlu_dgstrf {
 		    jsupno   = supno[jcol];
 		    fsupc    = xsup[jsupno];
 		    new_next = nextlu + (xlsub[fsupc+1]-xlsub[fsupc])*(kcol-jcol+1);
-		    nzlumax = Glu.nzlumax;
-		    while ( new_next > nzlumax ) {
-			if ( (info[0] = dLUMemXpand(jcol, nextlu, LUSUP, &nzlumax, &Glu)) )
+		    nzlumax[0] = Glu.nzlumax;
+		    while ( new_next > nzlumax[0] ) {
+		    info[0] = dLUMemXpand(jcol, nextlu, MemType.LUSUP, nzlumax, Glu);
+			if ( info[0] != 0 )
 			    return;
 		    }
 
