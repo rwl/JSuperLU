@@ -24,16 +24,33 @@ package lu.jsuper;
 import lu.jsuper.Dlu_slu_ddefs.GlobalLU_t;
 import lu.jsuper.Dlu_slu_util.Dlu_superlu_options_t;
 import lu.jsuper.Dlu_slu_util.SuperLUStat_t;
+import lu.jsuper.Dlu_superlu_enum_consts.PhaseType;
 import lu.jsuper.Dlu_superlu_enum_consts.fact_t;
+import lu.jsuper.Dlu_superlu_enum_consts.yes_no_t;
+import lu.jsuper.Dlu_supermatrix.Dtype_t;
+import lu.jsuper.Dlu_supermatrix.Mtype_t;
 import lu.jsuper.Dlu_supermatrix.NCPformat;
+import lu.jsuper.Dlu_supermatrix.NCformat;
+import lu.jsuper.Dlu_supermatrix.SCformat;
+import lu.jsuper.Dlu_supermatrix.Stype_t;
 import lu.jsuper.Dlu_supermatrix.SuperMatrix;
 
 import static lu.jsuper.Dlu_sp_ienv.sp_ienv;
 import static lu.jsuper.Dlu_slu_util.SUPERLU_MIN;
+import static lu.jsuper.Dlu_slu_util.EMPTY;
+import static lu.jsuper.Dlu_slu_util.NO_MARKER;
+import static lu.jsuper.Dlu_util.ifill;
+import static lu.jsuper.Dlu_util.DEBUG;
+import static lu.jsuper.Dlu_dutil.dCreate_SuperNode_Matrix;
+import static lu.jsuper.Dlu_dutil.dCreate_CompCol_Matrix;
 
 import static lu.jsuper.Dlu_dmemory.dLUMemInit;
 import static lu.jsuper.Dlu_dmemory.dSetRWork;
 import static lu.jsuper.Dlu_memory.SetIWork;
+import static lu.jsuper.Dlu_memory.intMalloc;
+
+import static lu.jsuper.Dlu_heap_relax_snode.heap_relax_snode;
+import static lu.jsuper.Dlu_relax_snode.relax_snode;
 
 
 public class Dlu_dgstrf {
@@ -262,6 +279,192 @@ public class Dlu_dgstrf {
 	    SetIWork(m, n, panel_size, iwork[0], segrep, parent, xplore,
 		     repfnz, panel_lsub, xprune, marker);
 	    dSetRWork(m, panel_size, dwork[0], dense, tempv);
+
+	    usepr = (fact == fact_t.SamePattern_SameRowPerm) ? 1 : 0;
+	    if ( usepr != 0 ) {
+    	/* Compute the inverse of perm_r */
+    	iperm_r = (int []) intMalloc(m);
+    	for (k = 0; k < m; ++k) iperm_r[perm_r[k]] = k;
+    	iperm_r_allocated = 1;
+        }
+	    iperm_c = (int []) intMalloc(n);
+	    for (k = 0; k < n; ++k) iperm_c[perm_c[k]] = k;
+
+	    /* Identify relaxed snodes */
+	    relax_end = (int []) intMalloc(n);
+	    if ( options.SymmetricMode == yes_no_t.YES ) {
+	        heap_relax_snode(n, etree, relax, marker[0], relax_end);
+	    } else {
+	        relax_snode(n, etree, relax, marker[0], relax_end);
+	    }
+
+	    ifill (perm_r, m, EMPTY);
+	    ifill (marker[0], m * NO_MARKER, EMPTY);
+	    supno[0] = -1;
+	    xsup[0]  = xlsub[0] = xusub[0] = xlusup[0] = 0;
+	    w_def    = panel_size;
+
+	    /*
+	     * Work on one "panel" at a time. A panel is one of the following:
+	     *	   (a) a relaxed supernode at the bottom of the etree, or
+	     *	   (b) panel_size contiguous columns, defined by the user
+	     */
+	    for (jcol = 0; jcol < min_mn; ) {
+
+		if ( relax_end[jcol] != EMPTY ) { /* start of a relaxed snode */
+	   	    kcol = relax_end[jcol];	  /* end of the relaxed snode */
+		    panel_histo[kcol-jcol+1]++;
+
+		    /* --------------------------------------
+		     * Factorize the relaxed supernode(jcol:kcol)
+		     * -------------------------------------- */
+		    /* Determine the union of the row structure of the snode */
+		    if ( (info[0] = dsnode_dfs(jcol, kcol, asub, xa_begin, xa_end,
+					    xprune, marker, &Glu)) != 0 )
+			return;
+
+	        nextu    = xusub[jcol];
+		    nextlu   = xlusup[jcol];
+		    jsupno   = supno[jcol];
+		    fsupc    = xsup[jsupno];
+		    new_next = nextlu + (xlsub[fsupc+1]-xlsub[fsupc])*(kcol-jcol+1);
+		    nzlumax = Glu.nzlumax;
+		    while ( new_next > nzlumax ) {
+			if ( (info[0] = dLUMemXpand(jcol, nextlu, LUSUP, &nzlumax, &Glu)) )
+			    return;
+		    }
+
+		    for (icol = jcol; icol<= kcol; icol++) {
+			xusub[icol+1] = nextu;
+
+	    		/* Scatter into SPA dense[*] */
+	    		for (k = xa_begin[icol]; k < xa_end[icol]; k++)
+	        	    dense[0][asub[k]] = a[k];
+
+		       	/* Numeric update within the snode */
+		        dsnode_bmod(icol, jsupno, fsupc, dense, tempv, &Glu, stat);
+
+			if ( (info[0] = dpivotL(icol, diag_pivot_thresh, &usepr, perm_r,
+					      iperm_r, iperm_c, &pivrow, &Glu, stat)) )
+			    if ( iinfo == 0 ) iinfo = info[0];
+
+			if (DEBUG)
+			dprint_lu_col("[1]: ", icol, pivrow, xprune, &Glu);
+
+		    }
+
+		    jcol = icol;
+
+		} else { /* Work on one panel of panel_size columns */
+
+		    /* Adjust panel_size so that a panel won't overlap with the next
+		     * relaxed snode.
+		     */
+		    panel_size = w_def;
+		    for (k = jcol + 1; k < SUPERLU_MIN(jcol+panel_size, min_mn); k++)
+			if ( relax_end[k] != EMPTY ) {
+			    panel_size = k - jcol;
+			    break;
+			}
+		    if ( k == min_mn ) panel_size = min_mn - jcol;
+		    panel_histo[panel_size]++;
+
+		    /* symbolic factor on a panel of columns */
+		    dpanel_dfs(m, panel_size, jcol, A, perm_r, &nseg1,
+			      dense, panel_lsub, segrep, repfnz, xprune,
+			      marker, parent, xplore, &Glu);
+
+		    /* numeric sup-panel updates in topological order */
+		    dpanel_bmod(m, panel_size, jcol, nseg1, dense,
+			        tempv, segrep, repfnz, &Glu, stat);
+
+		    /* Sparse LU within the panel, and below panel diagonal */
+	    	    for ( jj = jcol; jj < jcol + panel_size; jj++) {
+	 		k = (jj - jcol) * m; /* column index for w-wide arrays */
+
+			nseg = nseg1;	/* Begin after all the panel segments */
+
+		    	if ((info[0] = dcolumn_dfs(m, jj, perm_r, &nseg, &panel_lsub[k],
+						segrep, &repfnz[k], xprune, marker,
+						parent, xplore, &Glu)) != 0) return;
+
+		      	/* Numeric updates */
+		    	if ((info[0] = dcolumn_bmod(jj, (nseg - nseg1), &dense[k],
+						 tempv, &segrep[nseg1], &repfnz[k],
+						 jcol, &Glu, stat)) != 0) return;
+
+		        /* Copy the U-segments to ucol[*] */
+			if ((info[0] = dcopy_to_ucol(jj, nseg, segrep, &repfnz[k],
+						  perm_r, &dense[k], &Glu)) != 0)
+			    return;
+
+		    	if ( (info[0] = dpivotL(jj, diag_pivot_thresh, &usepr, perm_r,
+					      iperm_r, iperm_c, &pivrow, &Glu, stat)) )
+			    if ( iinfo == 0 ) iinfo = info[0];
+
+			/* Prune columns (0:jj-1) using column jj */
+		    	dpruneL(jj, perm_r, pivrow, nseg, segrep,
+	                        &repfnz[k], xprune, &Glu);
+
+			/* Reset repfnz[] for this column */
+		    	resetrep_col (nseg, segrep, &repfnz[k]);
+
+		    if (DEBUG)
+			dprint_lu_col("[2]: ", jj, pivrow, xprune, &Glu);
+
+		    }
+
+	   	    jcol += panel_size;	/* Move to the next panel */
+
+		} /* else */
+
+	    } /* for */
+
+	    info[0] = iinfo;
+
+	    if ( m > n ) {
+		k = 0;
+	        for (i = 0; i < m; ++i)
+	            if ( perm_r[i] == EMPTY ) {
+	    		perm_r[i] = n + k;
+			++k;
+		    }
+	    }
+
+	    countnz(min_mn, xprune, &nnzL, &nnzU, &Glu);
+	    fixupL(min_mn, perm_r, &Glu);
+
+	    dLUWorkFree(iwork, dwork, &Glu); /* Free work space and compress storage */
+
+	    if ( fact == fact_t.SamePattern_SameRowPerm ) {
+	        /* L and U structures may have changed due to possibly different
+		   pivoting, even though the storage is available.
+		   There could also be memory expansions, so the array locations
+	           may have changed, */
+	        ((SCformat)L[0].Store).nnz = nnzL;
+			((SCformat)L[0].Store).nsuper = Glu.supno[n];
+			((SCformat)L[0].Store).nzval = Glu.lusup;
+			((SCformat)L[0].Store).nzval_colptr = Glu.xlusup;
+			((SCformat)L[0].Store).rowind = Glu.lsub;
+			((SCformat)L[0].Store).rowind_colptr = Glu.xlsub;
+			((NCformat)U[0].Store).nnz = nnzU;
+			((NCformat)U[0].Store).nzval = Glu.ucol;
+			((NCformat)U[0].Store).rowind = Glu.usub;
+			((NCformat)U[0].Store).colptr = Glu.xusub;
+	    } else {
+	        L[0] = dCreate_SuperNode_Matrix(A.nrow, min_mn, nnzL, Glu.lusup,
+		                         Glu.xlusup, Glu.lsub, Glu.xlsub, Glu.supno,
+				         Glu.xsup, Stype_t.SLU_SC, Dtype_t.SLU_D, Mtype_t.SLU_TRLU);
+	    	U[0] = dCreate_CompCol_Matrix(min_mn, min_mn, nnzU, Glu.ucol,
+				       Glu.usub, Glu.xusub, Stype_t.SLU_NC, Dtype_t.SLU_D, Mtype_t.SLU_TRU);
+	    }
+
+	    ops[PhaseType.FACT.ordinal()] += ops[PhaseType.TRSV.ordinal()] + ops[PhaseType.GEMV.ordinal()];
+	    stat.expansions = --(Glu.num_expansions);
+
+	    if ( iperm_r_allocated != 0 ) iperm_r = null;
+	    iperm_c = null;
+	    relax_end = null;
 
 	}
 

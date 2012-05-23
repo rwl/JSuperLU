@@ -24,6 +24,7 @@ package lu.jsuper;
 import lu.jsuper.Dlu_supermatrix.DNformat;
 import lu.jsuper.Dlu_supermatrix.Dtype_t;
 import lu.jsuper.Dlu_supermatrix.Mtype_t;
+import lu.jsuper.Dlu_supermatrix.SCformat;
 import lu.jsuper.Dlu_supermatrix.Stype_t;
 import lu.jsuper.Dlu_supermatrix.SuperMatrix;
 import lu.jsuper.Dlu_supermatrix.NCformat;
@@ -69,6 +70,33 @@ public class Dlu_dutil {
 	    Xstore.nzval = x;
 
 	    return X;
+	}
+
+	public static SuperMatrix dCreate_SuperNode_Matrix(int m, int n, int nnz,
+			double nzval[], int nzval_colptr[], int rowind[],
+			int rowind_colptr[], int col_to_sup[], int sup_to_col[],
+			Stype_t stype, Dtype_t dtype, Mtype_t mtype) {
+	    SCformat Lstore;
+
+	    SuperMatrix L = new SuperMatrix();
+
+	    L.Stype = stype;
+	    L.Dtype = dtype;
+	    L.Mtype = mtype;
+	    L.nrow = m;
+	    L.ncol = n;
+	    L.Store = new SCformat();
+	    Lstore = (SCformat) L.Store;
+	    Lstore.nnz = nnz;
+	    Lstore.nsuper = col_to_sup[n];
+	    Lstore.nzval = nzval;
+	    Lstore.nzval_colptr = nzval_colptr;
+	    Lstore.rowind = rowind;
+	    Lstore.rowind_colptr = rowind_colptr;
+	    Lstore.col_to_sup = col_to_sup;
+	    Lstore.sup_to_col = sup_to_col;
+
+	    return L;
 	}
 
 	/**! \brief Fills a double precision array with a given value.

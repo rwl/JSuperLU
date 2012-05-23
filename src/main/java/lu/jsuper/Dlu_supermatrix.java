@@ -86,7 +86,7 @@ public class Dlu_supermatrix {
 	public static class SCformat {
 	  int  nnz;	     /* number of nonzeros in the matrix */
 	  int  nsuper;     /* number of supernodes, minus 1 */
-	  Object nzval[];       /* pointer to array of nonzero values, packed by column */
+	  double nzval[];       /* pointer to array of nonzero values, packed by column */
 	  int nzval_colptr[];/* pointer to array of beginning of columns in nzval[] */
 	  int rowind[];     /* pointer to array of compressed row indices of
 				rectangular supernodes */
