@@ -71,4 +71,12 @@ public class Dlu_dutil {
 	    return X;
 	}
 
+	/**! \brief Fills a double precision array with a given value.
+	 */
+	public static void dfill(double a[], int alen, double dval)
+	{
+	    int i;
+	    for (i = 0; i < alen; i++) a[i] = dval;
+	}
+
 }

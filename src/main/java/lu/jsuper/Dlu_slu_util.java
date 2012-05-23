@@ -23,6 +23,14 @@ import static lu.jsuper.Dlu_util.superlu_abort_and_exit;
 
 public class Dlu_slu_util {
 
+	/* No of marker arrays used in the symbolic factorization,
+	   each of size n */
+	public static final int NO_MARKER = 3;
+
+	public static int NUM_TEMPV(int m, int w, int t, int b) {
+		return SUPERLU_MAX(m, (t + b)*w);
+	}
+
 	public static void USER_ABORT(String msg) {
 		superlu_abort_and_exit(msg);
 	}
@@ -49,6 +57,31 @@ public class Dlu_slu_util {
 
 	public static int SUPERLU_MIN(int x, int y) {
 		return (x) < (y) ? (x) : (y);
+	}
+
+	public static double SUPERLU_MAX(double x, double y) {
+		return (x) > (y) ? (x) : (y);
+	}
+
+	public static double SUPERLU_MIN(double x, double y) {
+		return (x) < (y) ? (x) : (y);
+	}
+
+	/***********************************************************************
+	 * Constants
+	 ***********************************************************************/
+	public static final int EMPTY = -1;
+	/*public static final int NO = -1*/
+	public static final int FALSE = 0;
+	public static final int TRUE = 1;
+
+	public static final int NO_MEMTYPE = 4;      /* 0: lusup;
+		    1: ucol;
+		    2: lsub;
+		    3: usub */
+
+	public static int GluIntArray(int n) {
+		return 5 * (n) + 5;
 	}
 
 	/**
@@ -208,6 +241,20 @@ public class Dlu_slu_util {
 	    public yes_no_t      lookahead_etree; /* use etree computed from the
 					      serial symbolic factorization */
 	    public yes_no_t      SymPattern;      /* symmetric factorization          */
+	}
+
+	/*! \brief Headers for 4 types of dynamatically managed memory */
+	public static class ExpHeader {
+	    int size;      /* length of the memory that has been used */
+	    double mem[];     /* pointer to the new malloc'd store */
+	}
+
+	public static class LU_stack_t {
+	    int  size;
+	    int  used;
+	    int  top1;  /* grow upward, relative to &array[0] */
+	    int  top2;  /* grow downward */
+	    double array[];
 	}
 
 	public static class SuperLUStat_t {

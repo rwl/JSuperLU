@@ -197,7 +197,6 @@ public class Dlu_dgssv {
 	    /* Convert A to SLU_NC format when necessary. */
 	    if ( A.Stype == Stype_t.SLU_NR ) {
 		NRformat Astore = (NRformat) A.Store;
-//		AA = new SuperMatrix[1];
 		AA = dCreate_CompCol_Matrix(A.ncol, A.nrow, Astore.nnz,
 				       Astore.nzval, Astore.colind, Astore.rowptr,
 				       Stype_t.SLU_NC, A.Dtype, A.Mtype);

@@ -21,12 +21,24 @@
  */
 package lu.jsuper;
 
+import lu.jsuper.Dlu_slu_ddefs.GlobalLU_t;
 import lu.jsuper.Dlu_slu_util.Dlu_superlu_options_t;
 import lu.jsuper.Dlu_slu_util.SuperLUStat_t;
+import lu.jsuper.Dlu_superlu_enum_consts.fact_t;
+import lu.jsuper.Dlu_supermatrix.NCPformat;
 import lu.jsuper.Dlu_supermatrix.SuperMatrix;
+
+import static lu.jsuper.Dlu_sp_ienv.sp_ienv;
+import static lu.jsuper.Dlu_slu_util.SUPERLU_MIN;
+
+import static lu.jsuper.Dlu_dmemory.dLUMemInit;
+import static lu.jsuper.Dlu_dmemory.dSetRWork;
+import static lu.jsuper.Dlu_memory.SetIWork;
 
 
 public class Dlu_dgstrf {
+
+	private static GlobalLU_t Glu; /* persistent to facilitate multiple factors. */
 
 	/**! \brief
 	 *
@@ -39,8 +51,8 @@ public class Dlu_dgstrf {
 	 * The factorization has the form
 	 *     Pr * A = L * U
 	 * where Pr is a row permutation matrix, L is lower triangular with unit
-	 * diagonal elements (lower trapezoidal if A->nrow > A->ncol), and U is upper
-	 * triangular (upper trapezoidal if A->nrow < A->ncol).
+	 * diagonal elements (lower trapezoidal if A.nrow > A.ncol), and U is upper
+	 * triangular (upper trapezoidal if A.nrow < A.ncol).
 	 *
 	 * See supermatrix.h for the definition of 'SuperMatrix' structure.
 	 *
@@ -53,7 +65,7 @@ public class Dlu_dgstrf {
 	 *
 	 * A        (input) SuperMatrix*
 	 *	    Original matrix A, permuted by columns, of dimension
-	 *          (A->nrow, A->ncol). The type of A can be:
+	 *          (A.nrow, A.ncol). The type of A can be:
 	 *          Stype = SLU_NCP; Dtype = SLU_D; Mtype = SLU_GE.
 	 *
 	 * relax    (input) int
@@ -65,10 +77,10 @@ public class Dlu_dgstrf {
 	 * panel_size (input) int
 	 *          A panel consists of at most panel_size consecutive columns.
 	 *
-	 * etree    (input) int*, dimension (A->ncol)
+	 * etree    (input) int*, dimension (A.ncol)
 	 *          Elimination tree of A'*A.
 	 *          Note: etree is a vector of parent pointers for a forest whose
-	 *          vertices are the integers 0 to A->ncol-1; etree[root]==A->ncol.
+	 *          vertices are the integers 0 to A.ncol-1; etree[root]==A.ncol.
 	 *          On input, the columns of A should be permuted so that the
 	 *          etree is in a certain postorder.
 	 *
@@ -85,7 +97,7 @@ public class Dlu_dgstrf {
 	 *               performing the factorization, and returns it in
 	 *               *info; no other side effects.
 	 *
-	 * perm_c   (input) int*, dimension (A->ncol)
+	 * perm_c   (input) int*, dimension (A.ncol)
 	 *	    Column permutation vector, which defines the
 	 *          permutation matrix Pc; perm_c[i] = j means column i of A is
 	 *          in position j in A*Pc.
@@ -93,10 +105,10 @@ public class Dlu_dgstrf {
 	 *          row subscripts of A, so that diagonal threshold pivoting
 	 *          can find the diagonal of A, rather than that of A*Pc.
 	 *
-	 * perm_r   (input/output) int*, dimension (A->nrow)
+	 * perm_r   (input/output) int*, dimension (A.nrow)
 	 *          Row permutation vector which defines the permutation matrix Pr,
 	 *          perm_r[i] = j means row i of A is in position j in Pr*A.
-	 *          If options->Fact = SamePattern_SameRowPerm, the pivoting routine
+	 *          If options.Fact = SamePattern_SameRowPerm, the pivoting routine
 	 *             will try to use the input perm_r, unless a certain threshold
 	 *             criterion is violated. In that case, perm_r is overwritten by
 	 *             a new permutation determined by partial pivoting or diagonal
@@ -121,13 +133,13 @@ public class Dlu_dgstrf {
 	 *          = 0: successful exit
 	 *          < 0: if info = -i, the i-th argument had an illegal value
 	 *          > 0: if info = i, and i is
-	 *             <= A->ncol: U(i,i) is exactly zero. The factorization has
+	 *             <= A.ncol: U(i,i) is exactly zero. The factorization has
 	 *                been completed, but the factor U is exactly singular,
 	 *                and division by zero will occur if it is used to solve a
 	 *                system of equations.
-	 *             > A->ncol: number of bytes allocated when memory allocation
-	 *                failure occurred, plus A->ncol. If lwork = -1, it is
-	 *                the estimated amount of space needed, plus A->ncol.
+	 *             > A.ncol: number of bytes allocated when memory allocation
+	 *                failure occurred, plus A.ncol. If lwork = -1, it is
+	 *                the estimated amount of space needed, plus A.ncol.
 	 *
 	 * ======================================================================
 	 *
@@ -179,9 +191,77 @@ public class Dlu_dgstrf {
 	 * </pre>
 	 */
 	public static void dgstrf(Dlu_superlu_options_t options, SuperMatrix A,
-	        int relax, int panel_size, int etree[], Object work[], int lwork,
+	        int relax, int panel_size, int etree[], double work[], int lwork,
 	        int perm_c[], int perm_r[], SuperMatrix[] L, SuperMatrix[] U,
 	        SuperLUStat_t stat, int[] info) {
+
+	    /* Local working arrays */
+	    NCPformat Astore;
+	    int       iperm_r[] = null; /* inverse of perm_r; used when
+	                                  options.Fact == SamePattern_SameRowPerm */
+	    int       iperm_c[]; /* inverse of perm_c */
+	    int       iwork[][] = new int[1][];
+	    double    dwork[][] = new double[1][];
+	    int	      segrep[][] = new int[1][];
+	    int       repfnz[][] = new int[1][];
+	    int       parent[][] = new int[1][];
+	    int       xplore[][] = new int[1][];
+	    /* dense[]/panel_lsub[] pair forms a w-wide SPA */
+	    int	      panel_lsub[][] = new int[1][];
+	    int	      xprune[][] = new int[1][];
+	    int	      marker[][] = new int[1][];
+	    double    dense[][] = new double[1][];
+	    double    tempv[][] = new double[1][];
+	    int       relax_end[];
+	    double    a[];
+	    int       asub[];
+	    int       xa_begin[], xa_end[];
+	    int       xsup[], supno[];
+	    int       xlsub[], xlusup[], xusub[];
+	    int       nzlumax;
+	    double fill_ratio = sp_ienv(6);  /* estimated fill ratio */
+
+	    /* Local scalars */
+	    fact_t    fact = options.Fact;
+	    double    diag_pivot_thresh = options.DiagPivotThresh;
+	    int       pivrow;   /* pivotal row number in the original matrix A */
+	    int       nseg1;	/* no of segments in U-column above panel row jcol */
+	    int       nseg;	/* no of segments in each U-column */
+	    int jcol;
+	    int kcol;	/* end column of a relaxed snode */
+	    int icol;
+	    int i, k, jj, new_next, iinfo;
+	    int       m, n, min_mn, jsupno, fsupc, nextlu, nextu;
+	    int       w_def;	/* upper bound on panel width */
+	    int       usepr, iperm_r_allocated = 0;
+	    int       nnzL, nnzU;
+	    int       panel_histo[] = stat.panel_histo;
+	    float     ops[] = stat.ops;
+
+	    iinfo    = 0;
+	    m        = A.nrow;
+	    n        = A.ncol;
+	    min_mn   = SUPERLU_MIN(m, n);
+	    Astore   = (NCPformat) A.Store;
+	    a        = Astore.nzval;
+	    asub     = Astore.rowind;
+	    xa_begin = Astore.colbeg;
+	    xa_end   = Astore.colend;
+
+	    /* Allocate storage common to the factor routines */
+	    info[0] = dLUMemInit(fact, work, lwork, m, n, Astore.nnz,
+	                       panel_size, fill_ratio, L[0], U[0], Glu, iwork, dwork);
+	    if ( info[0] != 0 ) return;
+
+	    xsup    = Glu.xsup;
+	    supno   = Glu.supno;
+	    xlsub   = Glu.xlsub;
+	    xlusup  = Glu.xlusup;
+	    xusub   = Glu.xusub;
+
+	    SetIWork(m, n, panel_size, iwork[0], segrep, parent, xplore,
+		     repfnz, panel_lsub, xprune, marker);
+	    dSetRWork(m, panel_size, dwork[0], dense, tempv);
 
 	}
 

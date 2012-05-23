@@ -38,6 +38,7 @@ import static lu.jsuper.Dlu_memory.intCalloc;
 public class Dlu_util {
 
 	public static int PRNTlevel = 0;
+	public static boolean DEBUG = false;
 
 	public static void superlu_abort_and_exit(String msg) {
 		System.err.print(msg);
@@ -86,6 +87,14 @@ public class Dlu_util {
 			   sp_ienv(1), sp_ienv(2), sp_ienv(3),
 			   sp_ienv(4), sp_ienv(5), sp_ienv(6));
 		}
+	}
+
+	/**! \brief Fills an integer array with a given value.
+	 */
+	public static void ifill(int a[], int alen, int ival)
+	{
+	    int i;
+	    for (i = 0; i < alen; i++) a[i] = ival;
 	}
 
 }
