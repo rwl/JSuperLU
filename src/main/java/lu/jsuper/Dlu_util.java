@@ -40,6 +40,7 @@ public class Dlu_util {
 	public static int PRNTlevel = 0;
 	public static boolean DEBUG = false;
 	public static boolean USE_VENDOR_BLAS = false;
+	public static int MIN_COL = 8;
 
 	public static void superlu_abort_and_exit(String msg) {
 		System.err.print(msg);

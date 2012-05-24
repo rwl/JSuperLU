@@ -21,6 +21,7 @@
  */
 package lu.jsuper;
 
+import lu.jsuper.Dlu_slu_ddefs.GlobalLU_t;
 import lu.jsuper.Dlu_supermatrix.DNformat;
 import lu.jsuper.Dlu_supermatrix.Dtype_t;
 import lu.jsuper.Dlu_supermatrix.Mtype_t;
@@ -97,6 +98,47 @@ public class Dlu_dutil {
 	    Lstore.sup_to_col = sup_to_col;
 
 	    return L;
+	}
+
+	/**! \brief Diagnostic print of column "jcol" in the U/L factor.
+	 */
+	public static void
+	dprint_lu_col(String msg, int jcol, int pivrow, int xprune[], GlobalLU_t Glu)
+	{
+	    int     i, k, fsupc;
+	    int     xsup[], supno[];
+	    int     xlsub[], lsub[];
+	    double  lusup[];
+	    int     xlusup[];
+	    double  ucol[];
+	    int     usub[], xusub[];
+
+	    xsup    = Glu.xsup;
+	    supno   = Glu.supno;
+	    lsub    = Glu.lsub;
+	    xlsub   = Glu.xlsub;
+	    lusup   = Glu.lusup;
+	    xlusup  = Glu.xlusup;
+	    ucol    = Glu.ucol;
+	    usub    = Glu.usub;
+	    xusub   = Glu.xusub;
+
+	    System.out.printf("%s", msg);
+	    System.out.printf("col %d: pivrow %d, supno %d, xprune %d\n",
+		   jcol, pivrow, supno[jcol], xprune[jcol]);
+
+	    System.out.printf("\tU-col:\n");
+	    for (i = xusub[jcol]; i < xusub[jcol+1]; i++)
+	    	System.out.printf("\t%d%10.4f\n", usub[i], ucol[i]);
+	    System.out.printf("\tL-col in rectangular snode:\n");
+	    fsupc = xsup[supno[jcol]];	/* first col of the snode */
+	    i = xlsub[fsupc];
+	    k = xlusup[jcol];
+	    while ( i < xlsub[fsupc+1] && k < xlusup[jcol+1] ) {
+	    	System.out.printf("\t%d\t%10.4f\n", lsub[i], lusup[k]);
+	    	i++; k++;
+	    }
+	    System.out.flush();
 	}
 
 	/**! \brief Fills a double precision array with a given value.

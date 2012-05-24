@@ -44,6 +44,7 @@ import static lu.jsuper.Dlu_util.ifill;
 import static lu.jsuper.Dlu_util.DEBUG;
 import static lu.jsuper.Dlu_dutil.dCreate_SuperNode_Matrix;
 import static lu.jsuper.Dlu_dutil.dCreate_CompCol_Matrix;
+import static lu.jsuper.Dlu_dutil.dprint_lu_col;
 
 import static lu.jsuper.Dlu_dmemory.dLUMemInit;
 import static lu.jsuper.Dlu_dmemory.dSetRWork;
@@ -54,6 +55,8 @@ import static lu.jsuper.Dlu_memory.intMalloc;
 import static lu.jsuper.Dlu_heap_relax_snode.heap_relax_snode;
 import static lu.jsuper.Dlu_relax_snode.relax_snode;
 import static lu.jsuper.Dlu_dsnode_dfs.dsnode_dfs;
+import static lu.jsuper.Dlu_dsnode_bmod.dsnode_bmod;
+import static lu.jsuper.Dlu_dpivotL.dpivotL;
 
 
 public class Dlu_dgstrf {
@@ -244,7 +247,8 @@ public class Dlu_dgstrf {
 	    /* Local scalars */
 	    fact_t    fact = options.Fact;
 	    double    diag_pivot_thresh = options.DiagPivotThresh;
-	    int       pivrow;   /* pivotal row number in the original matrix A */
+	    /* pivotal row number in the original matrix A */
+	    int[]     pivrow = new int[1];
 	    int       nseg1;	/* no of segments in U-column above panel row jcol */
 	    int       nseg;	/* no of segments in each U-column */
 	    int jcol;
@@ -253,7 +257,8 @@ public class Dlu_dgstrf {
 	    int i, k, jj, new_next, iinfo;
 	    int       m, n, min_mn, jsupno, fsupc, nextlu, nextu;
 	    int       w_def;	/* upper bound on panel width */
-	    int       usepr, iperm_r_allocated = 0;
+	    int       iperm_r_allocated = 0;
+	    int[]     usepr = new int[1];
 	    int       nnzL, nnzU;
 	    int       panel_histo[] = stat.panel_histo;
 	    float     ops[] = stat.ops;
@@ -283,8 +288,8 @@ public class Dlu_dgstrf {
 		     repfnz, panel_lsub, xprune, marker);
 	    dSetRWork(m, panel_size, dwork[0], dense, tempv);
 
-	    usepr = (fact == fact_t.SamePattern_SameRowPerm) ? 1 : 0;
-	    if ( usepr != 0 ) {
+	    usepr[0] = (fact == fact_t.SamePattern_SameRowPerm) ? 1 : 0;
+	    if ( usepr[0] != 0 ) {
     	/* Compute the inverse of perm_r */
     	iperm_r = (int []) intMalloc(m);
     	for (k = 0; k < m; ++k) iperm_r[perm_r[k]] = k;
@@ -346,14 +351,15 @@ public class Dlu_dgstrf {
 	        	    dense[0][asub[k]] = a[k];
 
 		       	/* Numeric update within the snode */
-		        dsnode_bmod(icol, jsupno, fsupc, dense, tempv, &Glu, stat);
+		        dsnode_bmod(icol, jsupno, fsupc, dense[0], tempv[0], Glu, stat);
 
-			if ( (info[0] = dpivotL(icol, diag_pivot_thresh, &usepr, perm_r,
-					      iperm_r, iperm_c, &pivrow, &Glu, stat)) )
+		    info[0] = dpivotL(icol, diag_pivot_thresh, usepr, perm_r,
+					      iperm_r, iperm_c, pivrow, Glu, stat);
+			if ( info[0] != 0 )
 			    if ( iinfo == 0 ) iinfo = info[0];
 
 			if (DEBUG)
-			dprint_lu_col("[1]: ", icol, pivrow, xprune, &Glu);
+			dprint_lu_col("[1]: ", icol, pivrow[0], xprune[0], Glu);
 
 		    }
 

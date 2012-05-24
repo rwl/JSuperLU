@@ -29,6 +29,7 @@ import lu.jsuper.Dlu_superlu_enum_consts.PhaseType;
 
 import static lu.jsuper.Dlu_util.USE_VENDOR_BLAS;
 import static lu.jsuper.Dlu_dmyblas2.dlsolve;
+import static lu.jsuper.Dlu_dmyblas2.dmatvec;
 
 
 public class Dlu_dsnode_bmod {
@@ -43,10 +44,8 @@ public class Dlu_dsnode_bmod {
 		    SuperLUStat_t stat    /* output */
 		    )
 	{
-		if (USE_VENDOR_BLAS) {
 		int            incx = 1, incy = 1;
 	    double         alpha = -1.0, beta = 1.0;
-		}
 
 	    int            luptr, nsupc, nsupr, nrow;
 	    int            isub, irow, i, iptr;
@@ -89,18 +88,16 @@ public class Dlu_dsnode_bmod {
 
 		if (USE_VENDOR_BLAS) {
 			BLAS blas = BLAS.getInstance();
-			blas.dtrsv(uplo, trans, diag, n, a, lda, x, incx);
-			dtrsv_( "L", "N", "U", &nsupc, &lusup[luptr], &nsupr,
-			      &lusup[ufirst], &incx );
-			blas.dgemv(trans, m, n, alpha, a, lda, x, incx, beta, y, incy);
-			dgemv_( "N", &nrow, &nsupc, &alpha, &lusup[luptr+nsupc], &nsupr,
-				&lusup[ufirst], &incx, &beta, &lusup[ufirst+nsupc], &incy );
+			blas.dtrsv( "L", "N", "U", nsupc, lusup[luptr], nsupr,
+			      lusup[ufirst], incx );
+			blas.dgemv( "N", nrow, nsupc, alpha, lusup[luptr+nsupc], nsupr,
+				lusup[ufirst], incx, beta, lusup[ufirst+nsupc], incy );
 		}
 		else
 		{
-			dlsolve ( nsupr, nsupc, &lusup[luptr], &lusup[ufirst] );
-			dmatvec ( nsupr, nrow, nsupc, &lusup[luptr+nsupc],
-					&lusup[ufirst], &tempv[0] );
+			dlsolve ( nsupr, nsupc, lusup[luptr], lusup[ufirst] );
+			dmatvec ( nsupr, nrow, nsupc, lusup[luptr+nsupc],
+					lusup[ufirst], tempv[0] );
 
 		        /* Scatter tempv[*] into lusup[*] */
 			iptr = ufirst + nsupc;
