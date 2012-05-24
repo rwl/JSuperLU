@@ -57,6 +57,11 @@ import static lu.jsuper.Dlu_relax_snode.relax_snode;
 import static lu.jsuper.Dlu_dsnode_dfs.dsnode_dfs;
 import static lu.jsuper.Dlu_dsnode_bmod.dsnode_bmod;
 import static lu.jsuper.Dlu_dpivotL.dpivotL;
+import static lu.jsuper.Dlu_dpanel_dfs.dpanel_dfs;
+import static lu.jsuper.Dlu_dpanel_bmod.dpanel_bmod;
+import static lu.jsuper.Dlu_dcolumn_dfs.dcolumn_dfs;
+import static lu.jsuper.Dlu_dcolumn_bmod.dcolumn_bmod;
+import static lu.jsuper.Dlu_dcopy_to_ucol.dcopy_to_ucol;
 
 
 public class Dlu_dgstrf {
@@ -249,7 +254,7 @@ public class Dlu_dgstrf {
 	    double    diag_pivot_thresh = options.DiagPivotThresh;
 	    /* pivotal row number in the original matrix A */
 	    int[]     pivrow = new int[1];
-	    int       nseg1;	/* no of segments in U-column above panel row jcol */
+	    int[]     nseg1 = new int[1];	/* no of segments in U-column above panel row jcol */
 	    int       nseg;	/* no of segments in each U-column */
 	    int jcol;
 	    int kcol;	/* end column of a relaxed snode */
@@ -380,36 +385,36 @@ public class Dlu_dgstrf {
 		    panel_histo[panel_size]++;
 
 		    /* symbolic factor on a panel of columns */
-		    dpanel_dfs(m, panel_size, jcol, A, perm_r, &nseg1,
-			      dense, panel_lsub, segrep, repfnz, xprune,
-			      marker, parent, xplore, &Glu);
+		    dpanel_dfs(m, panel_size, jcol, A, perm_r, nseg1,
+			      dense[0], panel_lsub[0], segrep[0], repfnz[0], xprune[0],
+			      marker[0], parent[0], xplore[0], Glu);
 
 		    /* numeric sup-panel updates in topological order */
-		    dpanel_bmod(m, panel_size, jcol, nseg1, dense,
-			        tempv, segrep, repfnz, &Glu, stat);
+		    dpanel_bmod(m, panel_size, jcol, nseg1[0], dense[0],
+			        tempv[0], segrep[0], repfnz[0], Glu, stat);
 
 		    /* Sparse LU within the panel, and below panel diagonal */
 	    	    for ( jj = jcol; jj < jcol + panel_size; jj++) {
 	 		k = (jj - jcol) * m; /* column index for w-wide arrays */
 
-			nseg = nseg1;	/* Begin after all the panel segments */
+			nseg = nseg1[0];	/* Begin after all the panel segments */
 
-		    	if ((info[0] = dcolumn_dfs(m, jj, perm_r, &nseg, &panel_lsub[k],
-						segrep, &repfnz[k], xprune, marker,
-						parent, xplore, &Glu)) != 0) return;
+		    	if ((info[0] = dcolumn_dfs(m, jj, perm_r, nseg, panel_lsub[k],
+						segrep, repfnz[k], xprune, marker,
+						parent, xplore, Glu)) != 0) return;
 
 		      	/* Numeric updates */
-		    	if ((info[0] = dcolumn_bmod(jj, (nseg - nseg1), &dense[k],
-						 tempv, &segrep[nseg1], &repfnz[k],
-						 jcol, &Glu, stat)) != 0) return;
+		    	if ((info[0] = dcolumn_bmod(jj, (nseg - nseg1[0]), dense[k],
+						 tempv, segrep[nseg1], repfnz[k],
+						 jcol, Glu, stat)) != 0) return;
 
 		        /* Copy the U-segments to ucol[*] */
-			if ((info[0] = dcopy_to_ucol(jj, nseg, segrep, &repfnz[k],
-						  perm_r, &dense[k], &Glu)) != 0)
+			if ((info[0] = dcopy_to_ucol(jj, nseg, segrep[0], repfnz[k],
+						  perm_r, dense[k], Glu)) != 0)
 			    return;
 
 		    	if ( (info[0] = dpivotL(jj, diag_pivot_thresh, &usepr, perm_r,
-					      iperm_r, iperm_c, &pivrow, &Glu, stat)) )
+					      iperm_r, iperm_c, &pivrow, &Glu, stat)) != 0 )
 			    if ( iinfo == 0 ) iinfo = info[0];
 
 			/* Prune columns (0:jj-1) using column jj */
