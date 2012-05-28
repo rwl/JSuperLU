@@ -1,8 +1,4 @@
-/*! @file Dlu_supermatrix.java
- * \brief Defines matrix types
- */
 package lu.jsuper;
-
 
 public class Dlu_supermatrix {
 
@@ -19,14 +15,14 @@ public class Dlu_supermatrix {
 	    SLU_SCP,   /* supernode, column-wise, permuted */
 	    SLU_SR,    /* row-wise, supernode */
 	    SLU_DN,     /* Fortran style column-wise storage for dense matrix */
-	    SLU_NR_loc; /* distributed compressed row format  */
+	    SLU_NR_loc  /* distributed compressed row format  */
 	}
 
 	public enum Dtype_t {
 	    SLU_S,     /* single */
 	    SLU_D,     /* double */
 	    SLU_C,     /* single complex */
-	    SLU_Z;     /* double complex */
+	    SLU_Z      /* double complex */
 	}
 
 	public enum Mtype_t {
@@ -38,17 +34,17 @@ public class Dlu_supermatrix {
 	    SLU_SYL,   /* symmetric, store lower half */
 	    SLU_SYU,   /* symmetric, store upper half */
 	    SLU_HEL,   /* Hermitian, store lower half */
-	    SLU_HEU;   /* Hermitian, store upper half */
+	    SLU_HEU    /* Hermitian, store upper half */
 	}
 
 	public static class SuperMatrix {
-		public 	Stype_t Stype; /* Storage type: interprets the storage structure
-			pointed to by *Store. */
-		public Dtype_t Dtype; /* Data type. */
-		public Mtype_t Mtype; /* Matrix type: describes the mathematical property of
-			the matrix. */
-		public int nrow;   /* number of rows */
-		public int ncol;   /* number of columns */
+		Stype_t Stype; /* Storage type: interprets the storage structure
+			   	  pointed to by *Store. */
+		Dtype_t Dtype; /* Data type. */
+		Mtype_t Mtype; /* Matrix type: describes the mathematical property of
+				  the matrix. */
+		int    nrow;   /* number of rows */
+		int    ncol;   /* number of columns */
 		Object Store;   /* pointer to the actual storage of the matrix */
 	}
 
@@ -57,13 +53,13 @@ public class Dlu_supermatrix {
 	 ***********************************************/
 
 	/* Stype == SLU_NC (Also known as Harwell-Boeing sparse matrix format) */
-	public static class NCformat {
-	    int    nnz;	     /* number of nonzeros in the matrix */
-	    double nzval[];  /* pointer to array of nonzero values, packed by column */
-	    int    rowind[]; /* pointer to array of row indices of the nonzeros */
-	    int    colptr[]; /* pointer to array of beginning of columns in nzval[]
+	public static class NCformat{
+	    int    nnz;	    /* number of nonzeros in the matrix */
+	    double nzval[]; /* pointer to array of nonzero values, packed by column */
+	    int    rowind[];/* pointer to array of row indices of the nonzeros */
+	    int    colptr[];/* pointer to array of beginning of columns in nzval[]
 			       and rowind[]  */
-	            /* Note:
+	                    /* Note:
 			       Zero-based indexing is used;
 			       colptr[] has ncol+1 entries, the last one pointing
 			       beyond the last column, so that colptr[ncol] = nnz. */
@@ -73,8 +69,8 @@ public class Dlu_supermatrix {
 	public static class NRformat {
 	    int    nnz;	    /* number of nonzeros in the matrix */
 	    double nzval[]; /* pointer to array of nonzero values, packed by raw */
-	    int  colind[];  /* pointer to array of columns indices of the nonzeros */
-	    int  rowptr[];  /* pointer to array of beginning of rows in nzval[]
+	    int    colind[];/* pointer to array of columns indices of the nonzeros */
+	    int    rowptr[];/* pointer to array of beginning of rows in nzval[]
 			       and colind[]  */
 	                    /* Note:
 			       Zero-based indexing is used;
@@ -84,11 +80,11 @@ public class Dlu_supermatrix {
 
 	/* Stype == SLU_SC */
 	public static class SCformat {
-	  int  nnz;	     /* number of nonzeros in the matrix */
-	  int  nsuper;     /* number of supernodes, minus 1 */
-	  double nzval[];       /* pointer to array of nonzero values, packed by column */
+	  int    nnz;	     /* number of nonzeros in the matrix */
+	  int    nsuper;     /* number of supernodes, minus 1 */
+	  double nzval[];    /* pointer to array of nonzero values, packed by column */
 	  int nzval_colptr[];/* pointer to array of beginning of columns in nzval[] */
-	  int rowind[];     /* pointer to array of compressed row indices of
+	  int rowind[];      /* pointer to array of compressed row indices of
 				rectangular supernodes */
 	  int rowind_colptr[];/* pointer to array of beginning of columns in rowind[] */
 	  int col_to_sup[];   /* col_to_sup[j] is the supernode number to which column
@@ -109,24 +105,24 @@ public class Dlu_supermatrix {
 
 	/* Stype == SLU_SCP */
 	public static class SCPformat {
-	  int  nnz;	     /* number of nonzeros in the matrix */
-	  int  nsuper;     /* number of supernodes */
-	  Object nzval[];       /* pointer to array of nonzero values, packed by column */
-	  int  nzval_colbeg[];/* nzval_colbeg[j] points to beginning of column j
+	  int    nnz;	     /* number of nonzeros in the matrix */
+	  int    nsuper;     /* number of supernodes */
+	  double nzval[];    /* pointer to array of nonzero values, packed by column */
+	  int    nzval_colbeg[];/* nzval_colbeg[j] points to beginning of column j
 				  in nzval[] */
-	  int  nzval_colend[];/* nzval_colend[j] points to one past the last element
+	  int    nzval_colend[];/* nzval_colend[j] points to one past the last element
 				  of column j in nzval[] */
-	  int  rowind[];      /* pointer to array of compressed row indices of
+	  int    rowind[];      /* pointer to array of compressed row indices of
 				  rectangular supernodes */
-	  int rowind_colbeg[];/* rowind_colbeg[j] points to beginning of column j
+	  int   rowind_colbeg[];/* rowind_colbeg[j] points to beginning of column j
 				  in rowind[] */
-	  int rowind_colend[];/* rowind_colend[j] points to one past the last element
+	  int   rowind_colend[];/* rowind_colend[j] points to one past the last element
 				  of column j in rowind[] */
-	  int col_to_sup[];   /* col_to_sup[j] is the supernode number to which column
+	  int   col_to_sup[];   /* col_to_sup[j] is the supernode number to which column
 				  j belongs; mapping from column to supernode. */
-	  int sup_to_colbeg[]; /* sup_to_colbeg[s] points to the start of the s-th
+	  int   sup_to_colbeg[]; /* sup_to_colbeg[s] points to the start of the s-th
 				   supernode; mapping from supernode to column.*/
-	  int sup_to_colend[]; /* sup_to_colend[s] points to one past the end of the
+	  int   sup_to_colend[]; /* sup_to_colend[s] points to one past the end of the
 				   s-th supernode; mapping from supernode number to
 				   column.
 			        e.g.: col_to_sup: 0 1 2 2 3 3 3 4 4 4 4 4 4 (ncol=12)
@@ -141,9 +137,9 @@ public class Dlu_supermatrix {
 
 	/* Stype == SLU_NCP */
 	public static class NCPformat {
-	    int nnz;	  /* number of nonzeros in the matrix */
+	    int   nnz;	  /* number of nonzeros in the matrix */
 	    double nzval[];  /* pointer to array of nonzero values, packed by column */
-	    int rowind[];/* pointer to array of row indices of the nonzeros */
+	    int   rowind[];/* pointer to array of row indices of the nonzeros */
 			  /* Note: nzval[]/rowind[] always have the same length */
 	    int colbeg[];/* colbeg[j] points to the beginning of column j in nzval[]
 	                     and rowind[]  */
@@ -158,19 +154,19 @@ public class Dlu_supermatrix {
 
 	/* Stype == SLU_DN */
 	public static class DNformat {
-	    int lda;    /* leading dimension */
+	    int   lda;    /* leading dimension */
 	    double nzval[];  /* array of size lda*ncol to represent a dense matrix */
 	}
 
 	/* Stype == SLU_NR_loc (Distributed Compressed Row Format) */
 	public static class NRformat_loc {
-	    int nnz_loc;   /* number of nonzeros in the local submatrix */
-	    int m_loc;     /* number of rows local to this processor */
-	    int fst_row;   /* global index of the first row */
-	    Object  nzval[];    /* pointer to array of nonzero values, packed by row */
-	    int rowptr[];   /* pointer to array of beginning of rows in nzval[]
+	    int   nnz_loc;   /* number of nonzeros in the local submatrix */
+	    int   m_loc;     /* number of rows local to this processor */
+	    int   fst_row;   /* global index of the first row */
+	    double nzval[];  /* pointer to array of nonzero values, packed by row */
+	    int rowptr[];    /* pointer to array of beginning of rows in nzval[]
 				and colind[]  */
-	    int colind[];   /* pointer to array of column indices of the nonzeros */
+	    int   colind[];   /* pointer to array of column indices of the nonzeros */
 	                     /* Note:
 				Zero-based indexing is used;
 				rowptr[] has n_loc + 1 entries, the last one pointing
