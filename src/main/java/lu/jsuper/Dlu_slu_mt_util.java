@@ -121,19 +121,15 @@ public class Dlu_slu_mt_util {
 		return etree[j + pxgstrf_shared.pan_status[j].size-1];
 	}
 
-	static double TIC() {
+	static void TIC(double[] t) {
 		if (PROFILE) {
-			return SuperLU_timer_();
-		} else {
-			return 0.0;
+			t[0] = SuperLU_timer_();
 		}
 	}
 
-	static double TOC(double t1) {
+	static void TOC(double t2[], double t1) {
 		if (PROFILE) {
-			return SuperLU_timer_() - t1;
-		} else {
-			return 0.0;
+			t2[0] = SuperLU_timer_() - t1;
 		}
 	}
 

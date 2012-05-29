@@ -21,11 +21,14 @@ import static lu.jsuper.Dlu_util.ifill;
 import static lu.jsuper.Dlu_heap_relax_snode.heap_relax_snode;
 import static lu.jsuper.Dlu_pxgstrf_relax_snode.pxgstrf_relax_snode;
 
+import static lu.jsuper.Dlu_pxgstrf_synch.ParallelInit;
+
 
 public class Dlu_pdgstrf_thread_init {
 
     static GlobalLU_t Glu; /* persistent to support repeated factors. */
 
+    static
 	pdgstrf_threadarg_t[]
 	pdgstrf_thread_init(SuperMatrix A, SuperMatrix L, SuperMatrix U,
 			    superlumt_options_t options,
