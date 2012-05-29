@@ -20,11 +20,11 @@ public class Dlu_slu_mt_util {
 		superlu_abort_and_exit(msg);
 	}
 
-	public static void ABORT(String err_msg) {
-		ABORT(err_msg, null);
+	public static void SUPERLU_ABORT(String err_msg) {
+		SUPERLU_ABORT(err_msg, null);
 	}
 
-	public static void ABORT(String err_msg, Throwable e) {
+	public static void SUPERLU_ABORT(String err_msg, Throwable e) {
 		String msg;
 		if (e == null) {
 			msg = err_msg;
