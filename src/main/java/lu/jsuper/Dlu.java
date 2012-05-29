@@ -1,7 +1,5 @@
 package lu.jsuper;
 
-import static lu.jsuper.Dlu.printf;
-
 import java.io.PrintStream;
 
 public class Dlu {
@@ -17,6 +15,11 @@ public class Dlu {
 	public static boolean GEMV2 = false;
 	public static boolean SCATTER_FOUND = false;
 
+	public static boolean CHK_COLORDER = false;
+	public static boolean ZFD_PERM = false;
+	public static boolean CHK_NZCNT = false;
+	public static boolean DOMAINS = false;
+
 	public static void printf(String format, Object... args) {
 		System.out.printf(format, args);
 	}
@@ -27,6 +30,10 @@ public class Dlu {
 
 	public static void fflush(PrintStream stream) {
 		stream.flush();
+	}
+
+	public static void fclose(PrintStream stream) {
+		stream.close();
 	}
 
 	public static double fabs(double a) {

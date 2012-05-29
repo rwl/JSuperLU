@@ -7,6 +7,13 @@
  */
 package lu.jsuper;
 
+import lu.jsuper.Dlu_pdsp_defs.GlobalLU_t;
+import lu.jsuper.Dlu_pdsp_defs.pxgstrf_shared_t;
+import lu.jsuper.Dlu_slu_mt_util.Gstat_t;
+import lu.jsuper.Dlu_slu_mt_util.cp_panel_t;
+import lu.jsuper.Dlu_slu_mt_util.desc_eft_t;
+import lu.jsuper.Dlu_slu_mt_util.panstat_t;
+import lu.jsuper.Dlu_slu_mt_util.procstat_t;
 import lu.jsuper.Dlu_supermatrix.DNformat;
 import lu.jsuper.Dlu_supermatrix.NCPformat;
 import lu.jsuper.Dlu_supermatrix.NCformat;
@@ -15,6 +22,16 @@ import lu.jsuper.Dlu_supermatrix.SCformat;
 import lu.jsuper.Dlu_supermatrix.SuperMatrix;
 
 import static lu.jsuper.Dlu_slu_mt_util.EMPTY;
+import static lu.jsuper.Dlu_slu_mt_util.SUPER_REP;
+import static lu.jsuper.Dlu_slu_mt_util.SINGLETON;
+import static lu.jsuper.Dlu_slu_mt_util.SUPERLU_MAX;
+import static lu.jsuper.Dlu_slu_mt_util.PhaseType.NPHASES;
+import static lu.jsuper.Dlu_slu_mt_util.PhaseType.FACT;
+import static lu.jsuper.Dlu_slu_mt_util.PhaseType.SOLVE;
+import static lu.jsuper.Dlu_slu_mt_util.SUPERLU_ABORT;
+import static lu.jsuper.Dlu_slu_mt_util.how_selected_t.DADPAN;
+import static lu.jsuper.Dlu_slu_mt_util.how_selected_t.NOPIPE;
+import static lu.jsuper.Dlu_slu_mt_util.how_selected_t.PIPE;
 
 import static lu.jsuper.Dlu.fprintf;
 import static lu.jsuper.Dlu.printf;
@@ -23,6 +40,14 @@ import static lu.jsuper.Dlu.fflush;
 import static lu.jsuper.Dlu.stdout;
 import static lu.jsuper.Dlu.stderr;
 import static lu.jsuper.Dlu.PRNTlevel;
+import static lu.jsuper.Dlu.DEBUGlevel;
+import static lu.jsuper.Dlu.PREDICT_OPT;
+import static lu.jsuper.Dlu.PROFILE;
+import static lu.jsuper.Dlu.SCATTER_FOUND;
+import static lu.jsuper.Dlu.GEMV2;
+import static lu.jsuper.Dlu.USE_VENDOR_BLAS;
+
+import static lu.jsuper.Dlu_pxgstrf_synch.panel_t.TREE_DOMAIN;
 
 
 public class Dlu_util {
@@ -157,9 +182,9 @@ public class Dlu_util {
 	    xlsub     = Glu.xlsub;
 	    xlsub_end = Glu.xlsub_end;
 	    supno     = Glu.supno;
-	    *nnzU     = Glu.nextu;
+	    nnzU[0]   = Glu.nextu;
 	    nnzL0     = 0;
-	    *nnzL     = 0;
+	    nnzL[0]   = 0;
 	    nsuper    = supno[n];
 
 	    if ( n <= 0 ) return;
@@ -173,12 +198,12 @@ public class Dlu_util {
 		nnzsup += jlen * (xsup_end[i] - fsupc);
 
 		for (j = fsupc; j < xsup_end[i]; j++) {
-		    *nnzL += jlen;
-		    *nnzU += j - fsupc + 1;
+		    nnzL[0] += jlen;
+		    nnzU[0] += j - fsupc + 1;
 		    jlen--;
 		}
-		irep = SUPER_REP(i);
-		if ( SINGLETON(supno[irep]) )
+		irep = SUPER_REP(xsup_end, i);
+		if ( SINGLETON(xsup_end, xsup_end, supno[irep]) )
 		    nnzL0 += xprune[irep] - xlsub_end[irep];
 		else
 		    nnzL0 += xprune[irep] - xlsub[irep];
@@ -187,7 +212,7 @@ public class Dlu_util {
 	if ( PRNTlevel==1 ) {
 	    printf(".. # supernodes = %d\n", nsuper+1);
 	    printf(".. # edges in symm-reduced L = %d\n", nnzL0);
-	    if ( Glu.dynamic_snode_bound )
+	    if ( Glu.dynamic_snode_bound != 0 )
 	      printf(".. # NZ in LUSUP %d, dynamic bound %d, utilization %.2f\n",
 		     nnzsup, Glu.nextlu, (float)nnzsup/Glu.nextlu);
 	    else
@@ -248,10 +273,10 @@ public class Dlu_util {
 	int cpp_defs()
 	{
 	    printf("CPP Defs:\n");
-	if (PRNTlevel != null) {
+	if (true) {
 	    printf("\tPRNTlevel=%d\n", PRNTlevel);
 	}
-	if (DEBUGlevel != null) {
+	if (true) {
 	    printf("\tDEBUGlevel=%d\n", DEBUGlevel);
 	}
 	if (PROFILE) {
@@ -306,9 +331,9 @@ public class Dlu_util {
 	static
 	int check_mem_leak(String where)
 	{
-	    void *addr;
-	    addr = (void *)sbrk(0);
-	    printf("\tsbrk(0) %s: addr = %u\n", where, addr);
+//	    void *addr;
+//	    addr = (void *)sbrk(0);
+//	    printf("\tsbrk(0) %s: addr = %u\n", where, addr);
 	    return 0;
 	}
 
@@ -342,10 +367,9 @@ public class Dlu_util {
 	    w = SUPERLU_MAX( panel_size, relax ) + 1;
 	    Gstat.panel_histo = intCalloc(w);
 	    Gstat.utime = (double []) doubleMalloc(NPHASES);
-	    Gstat.ops   = new flops_t[NPHASES];
+	    Gstat.ops   = new flops_t[NPHASES.ordinal()];
 
-	    if ( !(Gstat.procstat =
-		   (procstat_t *) SUPERLU_MALLOC(nprocs*sizeof(procstat_t))) )
+	    if ( (Gstat.procstat = new procstat_t[nprocs]) == null )
 		SUPERLU_ABORT( "SUPERLU_MALLOC failed for procstat[]" );
 
 	if (PRNTlevel==1) {
@@ -353,23 +377,21 @@ public class Dlu_util {
 			n, nprocs, panel_size, relax);
 	}
 	if (PROFILE) {
-	    if ( !(Gstat.panstat =
-		   (panstat_t*) SUPERLU_MALLOC(n * sizeof(panstat_t))) )
+	    if ( (Gstat.panstat = new panstat_t[n]) == null )
 		SUPERLU_ABORT( "SUPERLU_MALLOC failed for panstat[]" );
 	    Gstat.panhows = intCalloc(3);
 	    Gstat.height = intCalloc(n+1);
-	    if ( !(Gstat.flops_by_height =
-		   (float *) SUPERLU_MALLOC(n * sizeof(float))) )
+	    if ( (Gstat.flops_by_height = new float[n]) == null )
 		SUPERLU_ABORT("SUPERLU_MALLOC failed for flops_by_height[]");
 	}
 
 	if (PREDICT_OPT) {
-	    if ( !(cp_panel = (cp_panel_t *) SUPERLU_MALLOC(n * sizeof(cp_panel_t))) )
+	    if ( (Gstat.cp_panel = new cp_panel_t[n]) == null )
 		SUPERLU_ABORT( "SUPERLU_MALLOC failed for cp_panel[]" );
-	    if ( !(desc_eft = (desc_eft_t *) SUPERLU_MALLOC(n * sizeof(desc_eft_t))) )
+	    if ( (Gstat.desc_eft = new desc_eft_t[n]) == null )
 		SUPERLU_ABORT( "SUPERLU_MALLOC failed for desc_eft[]" );
-	    cp_firstkid = intMalloc(n+1);
-	    cp_nextkid = intMalloc(n+1);
+	    Gstat.cp_firstkid = intMalloc(n+1);
+	    Gstat.cp_nextkid = intMalloc(n+1);
 	}
 
 	}
@@ -383,14 +405,14 @@ public class Dlu_util {
 	{
 	    int i;
 
-	    for (i = 0; i < NPHASES; ++i) {
+	    for (i = 0; i < NPHASES.ordinal(); ++i) {
 		Gstat.utime[i] = 0;
 		Gstat.ops[i] = 0;
 	    }
 
 	    for (i = 0; i < nprocs; ++i) {
 		Gstat.procstat[i].panels = 0;
-		Gstat.procstat[i].fcops = 0.0;
+		Gstat.procstat[i].fcops = 0.0f;
 		Gstat.procstat[i].skedwaits = 0;
 		Gstat.procstat[i].skedtime = 0.0;
 		Gstat.procstat[i].cs_time = 0.0;
@@ -402,19 +424,19 @@ public class Dlu_util {
 	if (PROFILE) {
 	    for (i = 0; i < n; ++i) {
 		Gstat.panstat[i].fctime = 0.0;
-		Gstat.panstat[i].flopcnt = 0.0;
+		Gstat.panstat[i].flopcnt = 0.0f;
 		Gstat.panstat[i].pipewaits = 0;
 		Gstat.panstat[i].spintime = 0.0;
-		Gstat.flops_by_height[i] = 0.0;
+		Gstat.flops_by_height[i] = 0.0f;
 	    }
 	    for (i = 0; i < 3; ++i) Gstat.panhows[i] = 0;
-	    Gstat.dom_flopcnt = 0.;
+	    Gstat.dom_flopcnt = 0.f;
 	    Gstat.flops_last_P_panels = 0;
 	}
 
 	if (PREDICT_OPT) {
 	    for (i = 0; i < n; ++i)
-		cp_panel[i].est = cp_panel[i].pdiv = 0;
+	    Gstat.cp_panel[i].est = Gstat.cp_panel[i].pdiv = 0;
 	}
 
 	if ( PRNTlevel==1 ) {
@@ -433,15 +455,15 @@ public class Dlu_util {
 
 	    utime = Gstat.utime;
 	    ops   = Gstat.ops;
-	    printf("Factor time  = %8.2f\n", utime[FACT]);
-	    if ( utime[FACT] != 0.0 )
-	      printf("Factor flops = %e\tMflops = %8.2f\n", ops[FACT],
-		     ops[FACT]*1e-6/utime[FACT]);
+	    printf("Factor time  = %8.2f\n", utime[FACT.ordinal()]);
+	    if ( utime[FACT.ordinal()] != 0.0 )
+	      printf("Factor flops = %e\tMflops = %8.2f\n", ops[FACT.ordinal()],
+		     ops[FACT.ordinal()]*1e-6/utime[FACT.ordinal()]);
 
-	    printf("Solve time   = %8.2f\n", utime[SOLVE]);
-	    if ( utime[SOLVE] != 0.0 )
-	      printf("Solve flops = %e\tMflops = %8.2f\n", ops[SOLVE],
-		     ops[SOLVE]*1e-6/utime[SOLVE]);
+	    printf("Solve time   = %8.2f\n", utime[SOLVE.ordinal()]);
+	    if ( utime[SOLVE.ordinal()] != 0.0 )
+	      printf("Solve flops = %e\tMflops = %8.2f\n", ops[SOLVE.ordinal()],
+		     ops[SOLVE.ordinal()]*1e-6/utime[SOLVE.ordinal()]);
 
 	}
 
@@ -477,14 +499,14 @@ public class Dlu_util {
 	flops_t
 	LUFactFlops(Gstat_t Gstat)
 	{
-	    return (Gstat.ops[FACT]);
+	    return (Gstat.ops[FACT.ordinal()]);
 	}
 
 	static
 	flops_t
 	LUSolveFlops(Gstat_t Gstat)
 	{
-	    return (Gstat.ops[SOLVE]);
+	    return (Gstat.ops[SOLVE.ordinal()]);
 	}
 
 
@@ -512,7 +534,7 @@ public class Dlu_util {
 	{
 	    int nsup1 = 0;
 	    int          i, isize, whichb, bl, bh;
-	    int          bucket[NBUCKS];
+	    int          bucket[] = new int[NBUCKS];
 
 	    max_sup_size = 0;
 
@@ -523,7 +545,7 @@ public class Dlu_util {
 	        isize = xsup_end[i] - xsup[i];
 		if ( isize == 1 ) nsup1++;
 		if ( max_sup_size < isize ) max_sup_size = isize;
-	        whichb = (float) isize / max_sup_size * NBUCKS;
+	        whichb = (int) (float) isize / max_sup_size * NBUCKS;
 	        if (whichb >= NBUCKS) whichb = NBUCKS - 1;
 	        bucket[whichb]++;
 	    }
@@ -534,8 +556,8 @@ public class Dlu_util {
 
 	    printf("\tHistogram of supernode size:\n");
 	    for (i = 0; i < NBUCKS; i++) {
-	        bl = (float) i * max_sup_size / NBUCKS;
-	        bh = (float) (i+1) * max_sup_size / NBUCKS;
+	        bl = (int) (float) i * max_sup_size / NBUCKS;
+	        bh = (int) (float) (i+1) * max_sup_size / NBUCKS;
 	        printf("\t%3d-%3d\t\t%d\n", bl+1, bh, bucket[i]);
 	    }
 
@@ -553,7 +575,7 @@ public class Dlu_util {
 	    total = 0;
 	    for (i = 0; i < n; i += w) {
 		w = Gstat.panstat[i].size;
-		if ( in_domain[i] != TREE_DOMAIN ) {
+		if ( in_domain[i] != TREE_DOMAIN.ordinal() ) {
 		    histo_flops[w - 1] += Gstat.panstat[i].flopcnt;
 		    total += Gstat.panstat[i].flopcnt;
 		}
@@ -572,13 +594,13 @@ public class Dlu_util {
 	static
 	float SpaSize(int n, int np, float sum_npw)
 	{
-	    return (sum_npw*8 + np*8 + n*4)/1024.;
+	    return (sum_npw*8 + np*8 + n*4)/1024.f;
 	}
 
 	static
 	float DenseSize(int n, float sum_nw)
 	{
-	    return (sum_nw*8 + n*8)/1024.;;
+	    return (sum_nw*8 + n*8)/1024.f;
 	}
 
 
@@ -648,103 +670,101 @@ public class Dlu_util {
 	    return 0;
 	}
 
-	if (false) {
-	/*
-	 * Print the statistics of the relaxed snodes for matlab process
-	 */
-	static
-	void relax_stats(int start, int end, int step)
-	{
-	    FILE fp;
-	    int i;
-
-	    fp = fopen("relax.m", "w");
-
-	    fprintf(fp,"relax = [\n");
-	    for (i = start; i <= end; i += step) fprintf(fp, "%d ", i);
-	    fprintf(fp, "];\n");
-
-	    fprintf(fp, "fctime = [\n");
-	    for (i = start; i <= end; i += step)
-		fprintf(fp, "%15.8e\n ", stat_relax[i].fctime);
-	    fprintf(fp, "];\n");
-
-	    fprintf(fp, "mflops = [\n");
-	    for (i = start; i <= end; i += step)
-		fprintf(fp, "%15.8e\n ", (float)stat_relax[i].flops / 1e6);
-	    fprintf(fp, "];\n");
-
-	    fprintf(fp, "mnzs = [\n");
-	    for (i = start; i <= end; i += step)
-	 	fprintf(fp, "%15.8e\n ", stat_relax[i].nzs / 1e6);
-	    fprintf(fp, "];\n");
-
-	    fclose(fp);
-	}
-
-	/*
-	 * Obtain the distribution of time/flops/nzs on the snode size.
-	 */
-	static
-	void snode_profile(int nsuper, int xsup[])
-	{
-	    FILE fp;
-	    int i, j;
-	    int ssize;
-
-	    if ( !(stat_snode = (stat_snode_t *) SUPERLU_MALLOC((max_sup_size+1) *
-		sizeof(stat_snode_t))) ) ABORT("SUPERLU_MALLOC fails for stat_snode[].");
-
-	    for (i = 0; i <= max_sup_size; i++) {
-		stat_snode[i].ncols = 0;
-		stat_snode[i].flops = 0;
-		stat_snode[i].nzs = 0;
-		stat_snode[i].fctime = 0.0;
-	    }
-
-	    for (i = 0; i <= nsuper; i++) {
-
-		ssize = xsup[i+1] - xsup[i];
-		stat_snode[ssize].ncols += ssize;
-
-	        for (j=xsup[i]; j<xsup[i+1]; j++) {
-		    stat_snode[ssize].flops += stat_col[j].flops;
-		    stat_snode[ssize].nzs += stat_col[j].nzs;
-		    stat_snode[ssize].fctime += stat_col[j].fctime;
-		}
-
-	    }
-
-	    fp = fopen("snode.m", "w");
-
-	    fprintf(fp, "max_sup_size = %d;\n", max_sup_size);
-
-	    fprintf(fp,"ncols = [");
-	    for (i = 1; i <= max_sup_size; i++)
-		fprintf(fp, "%d ", stat_snode[i].ncols);
-	    fprintf(fp, "];\n");
-
-	    fprintf(fp, "fctime = [");
-	    for (i = 1; i <= max_sup_size; i++)
-		fprintf(fp, "%15.8e\n", stat_snode[i].fctime);
-	    fprintf(fp, "];\n");
-
-	    fprintf(fp, "mflops = [");
-	    for (i = 1; i <= max_sup_size; i++)
-		fprintf(fp, "%15.8e\n", (float) stat_snode[i].flops / 1e6);
-	    fprintf(fp, "];\n");
-
-	    fprintf(fp, "mnzs = [");
-	    for (i = 1; i <= max_sup_size; i++)
-		fprintf(fp, "%15.8e\n", (float) stat_snode[i].nzs / 1e6);
-	    fprintf(fp, "];\n");
-
-	    fclose(fp);
-
-	    SUPERLU_FREE (stat_snode);
-
-	}
-	}
+//	/*
+//	 * Print the statistics of the relaxed snodes for matlab process
+//	 */
+//	static
+//	void relax_stats(int start, int end, int step)
+//	{
+//	    FILE fp;
+//	    int i;
+//
+//	    fp = fopen("relax.m", "w");
+//
+//	    fprintf(fp,"relax = [\n");
+//	    for (i = start; i <= end; i += step) fprintf(fp, "%d ", i);
+//	    fprintf(fp, "];\n");
+//
+//	    fprintf(fp, "fctime = [\n");
+//	    for (i = start; i <= end; i += step)
+//		fprintf(fp, "%15.8e\n ", stat_relax[i].fctime);
+//	    fprintf(fp, "];\n");
+//
+//	    fprintf(fp, "mflops = [\n");
+//	    for (i = start; i <= end; i += step)
+//		fprintf(fp, "%15.8e\n ", (float)stat_relax[i].flops / 1e6);
+//	    fprintf(fp, "];\n");
+//
+//	    fprintf(fp, "mnzs = [\n");
+//	    for (i = start; i <= end; i += step)
+//	 	fprintf(fp, "%15.8e\n ", stat_relax[i].nzs / 1e6);
+//	    fprintf(fp, "];\n");
+//
+//	    fclose(fp);
+//	}
+//
+//	/*
+//	 * Obtain the distribution of time/flops/nzs on the snode size.
+//	 */
+//	static
+//	void snode_profile(int nsuper, int xsup[])
+//	{
+//	    FILE fp;
+//	    int i, j;
+//	    int ssize;
+//
+//	    if ( !(stat_snode = (stat_snode_t *) SUPERLU_MALLOC((max_sup_size+1) *
+//		sizeof(stat_snode_t))) ) ABORT("SUPERLU_MALLOC fails for stat_snode[].");
+//
+//	    for (i = 0; i <= max_sup_size; i++) {
+//		stat_snode[i].ncols = 0;
+//		stat_snode[i].flops = 0;
+//		stat_snode[i].nzs = 0;
+//		stat_snode[i].fctime = 0.0;
+//	    }
+//
+//	    for (i = 0; i <= nsuper; i++) {
+//
+//		ssize = xsup[i+1] - xsup[i];
+//		stat_snode[ssize].ncols += ssize;
+//
+//	        for (j=xsup[i]; j<xsup[i+1]; j++) {
+//		    stat_snode[ssize].flops += stat_col[j].flops;
+//		    stat_snode[ssize].nzs += stat_col[j].nzs;
+//		    stat_snode[ssize].fctime += stat_col[j].fctime;
+//		}
+//
+//	    }
+//
+//	    fp = fopen("snode.m", "w");
+//
+//	    fprintf(fp, "max_sup_size = %d;\n", max_sup_size);
+//
+//	    fprintf(fp,"ncols = [");
+//	    for (i = 1; i <= max_sup_size; i++)
+//		fprintf(fp, "%d ", stat_snode[i].ncols);
+//	    fprintf(fp, "];\n");
+//
+//	    fprintf(fp, "fctime = [");
+//	    for (i = 1; i <= max_sup_size; i++)
+//		fprintf(fp, "%15.8e\n", stat_snode[i].fctime);
+//	    fprintf(fp, "];\n");
+//
+//	    fprintf(fp, "mflops = [");
+//	    for (i = 1; i <= max_sup_size; i++)
+//		fprintf(fp, "%15.8e\n", (float) stat_snode[i].flops / 1e6);
+//	    fprintf(fp, "];\n");
+//
+//	    fprintf(fp, "mnzs = [");
+//	    for (i = 1; i <= max_sup_size; i++)
+//		fprintf(fp, "%15.8e\n", (float) stat_snode[i].nzs / 1e6);
+//	    fprintf(fp, "];\n");
+//
+//	    fclose(fp);
+//
+//	    SUPERLU_FREE (stat_snode);
+//
+//	}
 
 	static
 	int print_int_vec(String what, int n, int vec[])
@@ -767,8 +787,8 @@ public class Dlu_util {
 	    float loadmax, loadtot, temp, thresh, loadprint;
 	    float waittime, cs_time;
 	    double    utime[] = Gstat.utime;
-	    procstat_t pstat[];
-	    panstat_t pan[];
+	    procstat_t pstat;
+	    panstat_t pan;
 //	    void print_flops_by_height(int, panstat_t *, int *, float *);
 
 	    printf("\n---- Parallel Profile Per Processor ----\n");
@@ -776,9 +796,9 @@ public class Dlu_util {
 		   "seconds", "skedwaits", "skedtime", "CS-time",
 		   "spin-time", "[%tot]");
 	    for (i = 0; i < procs; ++i) {
-		pstat = &(Gstat.procstat[i]);
+		pstat = (Gstat.procstat[i]);
 		if ( pstat.fctime != 0 ) {
-		    temp = pstat.spintime/pstat.fctime*100.;
+		    temp = (float) (pstat.spintime/pstat.fctime*100.f);
 		    printf("%4d%16e%8.2f%10d%10.3f%10.3f%10.3f%8.1f\n",
 			   i, pstat.fcops, pstat.fctime, pstat.skedwaits,
 			   pstat.skedtime, pstat.cs_time, pstat.spintime, temp);
@@ -788,9 +808,9 @@ public class Dlu_util {
 	    printf("%4s%8s%12s%14s\n",
 		   "proc", "#panels", "dfs_pruned","dfs_unpruned");
 	    pruned = unpruned = 0;
-	    cs_time = 0.0;
+	    cs_time = 0.0f;
 	    for (i = 0; i < procs; ++i) {
-		pstat = &(Gstat.procstat[i]);
+		pstat = (Gstat.procstat[i]);
 		printf("%4d%8d%12d%14d\n", i, pstat.panels,
 			pstat.pruned, pstat.unpruned);
 		pruned += Gstat.procstat[i].pruned;
@@ -804,9 +824,9 @@ public class Dlu_util {
 	    	printf("%12s%12.2f%14.2f\n", "frac.", pruned/temp, unpruned/temp);
 	    }
 
-	    printf("%16s%16d\n", "piped-panels", Gstat.panhows[PIPE]);
-	    printf("%16s%16d\n", "nonpiped-DADs", Gstat.panhows[DADPAN]);
-	    printf("%16s%16d\n", "nonpiped-panels", Gstat.panhows[NOPIPE]);
+	    printf("%16s%16d\n", "piped-panels", Gstat.panhows[PIPE.ordinal()]);
+	    printf("%16s%16d\n", "nonpiped-DADs", Gstat.panhows[DADPAN.ordinal()]);
+	    printf("%16s%16d\n", "nonpiped-panels", Gstat.panhows[NOPIPE.ordinal()]);
 
 	    /* work load distribution */
 	    loadmax = loadtot = Gstat.procstat[0].fcops;
@@ -822,7 +842,7 @@ public class Dlu_util {
 	    printf("%25s%8.2f\n", "Load balance [mean/max]", loadtot/loadmax/procs);
 
 	    /* Delays due to pipelining. */
-	    waits = waittime = 0;
+	    waits = 0; waittime = 0;
 	    for (i = 0; i < n; i += Gstat.panstat[i].size) { /* add up all panels */
 		waits += Gstat.panstat[i].pipewaits;
 		waittime += Gstat.panstat[i].spintime;
@@ -831,10 +851,10 @@ public class Dlu_util {
 		    waits, (float)waits/panels);
 	    temp = waittime / procs;
 	    printf("%25s%8.2f\t[%.1f%]\n", "mean spin time per-proc",
-		   temp, temp/utime[FACT]*100);
+		   temp, temp/utime[FACT.ordinal()]*100);
 
 	    /* Delays due to scheduling. */
-	    waits = waittime = 0;
+	    waits = 0; waittime = 0;
 	    for (i = 0; i < procs; ++i) {
 		waits += Gstat.procstat[i].skedwaits;
 		waittime += Gstat.procstat[i].skedtime;
@@ -842,32 +862,32 @@ public class Dlu_util {
 	    printf("%25s%8d\n", "total #delays in schedule", waits);
 	    temp = waittime / procs;
 	    printf("%25s%8.2f\t[%.1f%]\n", "mean sched. time per-proc",
-		   temp, temp/utime[FACT]*100);
+		   temp, temp/utime[FACT.ordinal()]*100);
 
 	    /* estimated overhead in spin-locks */
-	    double TMUTEX          = 2.71e-6
-	    int FLOPS_PER_LOCK  = 407
+	    double TMUTEX       = 2.71e-6;
+	    int FLOPS_PER_LOCK  = 407;
 
 	    cs_numbers = n + 3*supers + panels + procs;
 	    itemp = cs_numbers * FLOPS_PER_LOCK;     /* translated to flops */
-	    temp = cs_numbers * TMUTEX;
+	    temp = (float) (cs_numbers * TMUTEX);
 	    printf("mutex-lock overhead (est.) %8.2f, #locks %d, equiv. flops %e\n",
 		   temp, cs_numbers, (float) itemp);
 	    printf("time in critical section   %8.2f\t[%.1f%]\n",
-		   cs_time/procs, cs_time/procs/utime[FACT]*100);
+		   cs_time/procs, cs_time/procs/utime[FACT.ordinal()]*100);
 
 	    printf("\n---- Parallel Profile Per Panel ----\n");
 	    printf("%8s%8s%16s%8s%8s%12s%8s\n", "panel", "height",
 		    "factops", "[tot%]", "msec", "spin(msec)", "Mflops");
-	    thresh = 0.005 * loadtot;
+	    thresh = (float) (0.005 * loadtot);
 	    loadprint = 0;
 	    itemp = 0;
 	    for (i = 0; i < n; i += Gstat.panstat[i].size) {
-		pan = &(Gstat.panstat[i]);
+		pan = (Gstat.panstat[i]);
 		if ( pan.flopcnt > thresh ) {
 		    loadprint += pan.flopcnt;
 		    ++itemp;
-		    if ( pan.fctime != 0 ) temp = pan.flopcnt/pan.fctime*1e-6;
+		    if ( pan.fctime != 0 ) temp = (float) (pan.flopcnt/pan.fctime*1e-6);
 		    printf("%4d%4d%8d%16e%8.1f%8.2f%12.2f%8.2f\n", i, pan.size,
 			    Gstat.height[i], pan.flopcnt, pan.flopcnt/loadtot*100.,
 			    pan.fctime*1e3, pan.spintime*1e3, temp);
@@ -918,7 +938,7 @@ public class Dlu_util {
 	 */
 	static
 	int
-	CPprofile(final int n, cp_panel_t cp_panel[], pxgstrf_shared_t pxgstrf_shared[])
+	CPprofile(final int n, cp_panel_t cp_panel[], pxgstrf_shared_t pxgstrf_shared)
 	{
 	    Gstat_t Gstat = pxgstrf_shared.Gstat;
 	    int maxpan, i, j, treecnt;
@@ -943,7 +963,7 @@ public class Dlu_util {
 	    ops   = Gstat.ops;
 	    printf("\n** Runtime prediction model: #trees %d\n", treecnt);
 	    printf("Last panel %d, seq-time %e, EFT %e, ideal-speedup %.2f\n",
-		   maxpan, ops[FACT], maxeft, ops[FACT]/maxeft);
+		   maxpan, ops[FACT.ordinal()], maxeft, ops[FACT.ordinal()]/maxeft);
 
 	if ( DEBUGlevel>=2 ) {
 	    printf("last panel %d\n", maxpan);
@@ -998,7 +1018,7 @@ public class Dlu_util {
 	{
 	    int i, j, c;
 	    int n = A.ncol;
-	    NCformat Astore = A.Store;
+	    NCformat Astore = (NCformat) A.Store;
 	    double nzval[] = Astore.nzval;
 	    int colptr[] = Astore.colptr;
 	    printf("CompCol_NC: nnz %d\n", Astore.nnz);

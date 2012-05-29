@@ -8,6 +8,7 @@ import lu.jsuper.Dlu_slu_mt_util.yes_no_t;
 import lu.jsuper.Dlu_supermatrix.DNformat;
 import lu.jsuper.Dlu_supermatrix.NCformat;
 import lu.jsuper.Dlu_supermatrix.NRformat;
+import lu.jsuper.Dlu_supermatrix.SCPformat;
 import lu.jsuper.Dlu_supermatrix.Stype_t;
 import lu.jsuper.Dlu_supermatrix.SuperMatrix;
 
@@ -35,6 +36,11 @@ import static lu.jsuper.Dlu_superlu_timer.SuperLU_timer_;
 import static lu.jsuper.Dlu_xerbla_.xerbla_;
 
 import static lu.jsuper.Dlu_pdutil.dCreate_CompCol_Matrix;
+
+import static lu.jsuper.Dlu_util.StatAlloc;
+import static lu.jsuper.Dlu_util.StatInit;
+
+import static lu.jsuper.Dlu_pdgstrf_init.pdgstrf_init;
 
 
 public class Dlu_pdgssv {
@@ -214,8 +220,8 @@ public class Dlu_pdgssv {
 	       Allocate storage and initialize statistics variables.
 	       ------------------------------------------------------------*/
 	    n = A.ncol;
-	    StatAlloc(n, nprocs, panel_size, relax, &Gstat);
-	    StatInit(n, nprocs, &Gstat);
+	    StatAlloc(n, nprocs, panel_size, relax, Gstat);
+	    StatInit(n, nprocs, Gstat);
 	    utime = Gstat.utime;
 	    ops = Gstat.ops;
 
@@ -223,10 +229,10 @@ public class Dlu_pdgssv {
 	       Convert A to NC format when necessary.
 	       ------------------------------------------------------------*/
 	    if ( A.Stype == SLU_NR ) {
-		NRformat Astore = A.Store;
+		NRformat Astore_ = (NRformat) A.Store;
 		AA = (SuperMatrix) new SuperMatrix();
-		dCreate_CompCol_Matrix(AA, A.ncol, A.nrow, Astore.nnz,
-				       Astore.nzval, Astore.colind, Astore.rowptr,
+		dCreate_CompCol_Matrix(AA, A.ncol, A.nrow, Astore_.nnz,
+				       Astore_.nzval, Astore_.colind, Astore_.rowptr,
 				       SLU_NC, A.Dtype, A.Mtype);
 		trans = TRANS;
 	    } else if ( A.Stype == SLU_NC ) AA = A;
@@ -284,8 +290,8 @@ public class Dlu_pdgssv {
 	       ------------------------------------------------------------*/
 	if (PROFILE) {
 	    {
-		SCPformat Lstore = (SCPformat) L.Store;
-		ParallelProfile(n, Lstore.nsuper+1, Gstat.num_panels, nprocs, Gstat);
+		SCPformat Lstore_ = (SCPformat) L[0].Store;
+		ParallelProfile(n, Lstore_.nsuper+1, Gstat.num_panels, nprocs, Gstat);
 	    }
 	}
 	    PrintStat(Gstat);

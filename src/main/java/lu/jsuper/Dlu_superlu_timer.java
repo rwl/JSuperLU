@@ -22,4 +22,10 @@ public class Dlu_superlu_timer {
 	    return (dclock);
 	}
 
+	static
+	double usertimer_()
+	{
+	    return SuperLU_timer_();
+	}
+
 }
