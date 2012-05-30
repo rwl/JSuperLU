@@ -11,11 +11,13 @@ import static lu.jsuper.Dlu_slu_mt_util.SUPERLU_ABORT;
 import static lu.jsuper.Dlu.printf;
 import static lu.jsuper.Dlu.fprintf;
 import static lu.jsuper.Dlu.stderr;
+import static lu.jsuper.Dlu.PRNTlevel;
 
 import static lu.jsuper.Dlu_superlu_timer.SuperLU_timer_;
 import static lu.jsuper.Dlu_superlu_timer.usertimer_;
 
 import static lu.jsuper.Dlu_pdgstrf_thread_init.pdgstrf_thread_init;
+import static lu.jsuper.Dlu_pdgstrf_thread_finalize.pdgstrf_thread_finalize;
 
 
 public class Dlu_pdgstrf {
@@ -213,10 +215,10 @@ public class Dlu_pdgstrf {
 	    usrtime = usertimer_() - usrtime;
 	    utime[FACT] = wtime;
 
-	#if ( PRNTlevel==1 )
+	if ( PRNTlevel==1 ) {
 	    printf(".. pdgstrf_thread() returns info %d, usrtime %.2f, wtime %.2f\n",
-	           *info, usrtime, wtime);
-	#endif
+	           info[0], usrtime, wtime);
+	}
 
 	    /* check_mem_leak("after pdgstrf_thread()"); */
 

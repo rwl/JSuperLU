@@ -23,6 +23,11 @@ public class Dlu {
 	public static boolean DOMAINS = false;
 	public static boolean CHK_EXPAND = false;
 	public static boolean POSTORDER = false;
+	public static boolean CHK_PIVOT = false;
+	public static boolean CHK_DFS = false;
+	public static boolean DOPRINT = false;
+	public static boolean CHK_PRUNE = false;
+	public static boolean COMPRESS_LUSUP = false;
 
 	public static void printf(String format, Object... args) {
 		System.out.printf(format, args);

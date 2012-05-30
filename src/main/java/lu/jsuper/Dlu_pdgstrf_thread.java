@@ -21,7 +21,12 @@ import static lu.jsuper.Dlu_slu_mt_util.HICOL;
 import static lu.jsuper.Dlu_slu_mt_util.BADPAN;
 import static lu.jsuper.Dlu_slu_mt_util.BADCOL;
 import static lu.jsuper.Dlu_slu_mt_util.PhaseType.DFS;
+
 import static lu.jsuper.Dlu_util.ifill;
+import static lu.jsuper.Dlu_util.pxgstrf_resetrep_col;
+
+import static lu.jsuper.Dlu_pdutil.dprint_lu_col;
+import static lu.jsuper.Dlu_pdutil.dcheck_zero_vec;
 
 import static lu.jsuper.Dlu_superlu_timer.SuperLU_timer_;
 
@@ -38,6 +43,16 @@ import static lu.jsuper.Dlu_pmemory.intMalloc;
 
 import static lu.jsuper.Dlu_pxgstrf_scheduler.pxgstrf_scheduler;
 import static lu.jsuper.Dlu_pxgstrf_synch.panel_t.RELAXED_SNODE;
+import static lu.jsuper.Dlu_pdgstrf_factor_snode.pdgstrf_factor_snode;
+import static lu.jsuper.Dlu_pxgstrf_mark_busy_descends.pxgstrf_mark_busy_descends;
+import static lu.jsuper.Dlu_pdgstrf_panel_dfs.pdgstrf_panel_dfs;
+import static lu.jsuper.Dlu_pdgstrf_panel_bmod.pdgstrf_panel_bmod;
+import static lu.jsuper.Dlu_pxgstrf_super_bnd_dfs.pxgstrf_super_bnd_dfs;
+import static lu.jsuper.Dlu_pdgstrf_column_dfs.pdgstrf_column_dfs;
+import static lu.jsuper.Dlu_pdgstrf_column_bmod.pdgstrf_column_bmod;
+import static lu.jsuper.Dlu_pdgstrf_pivotL.pdgstrf_pivotL;
+import static lu.jsuper.Dlu_pdgstrf_copy_to_ucol.pdgstrf_copy_to_ucol;
+import static lu.jsuper.Dlu_pxgstrf_pruneL.pxgstrf_pruneL;
 
 
 public class Dlu_pdgstrf_thread {
@@ -179,9 +194,12 @@ public class Dlu_pdgstrf_thread {
 
 	    /* Local scalars */
 	    int m, n, k, jj, jcolm1, itemp, singular;
-	    int       pivrow;   /* pivotal row number in the original matrix A */
-	    int       nseg1;	/* no of segments in U-column above panel row jcol */
-	    int       nseg;	/* no of segments in each U-column */
+	    int       pivrow[];   /* pivotal row number in the original matrix A */
+	    pivrow = new int[1];
+	    int       nseg1[];	/* no of segments in U-column above panel row jcol */
+	    nseg1 = new int[1];
+	    int       nseg[];	/* no of segments in each U-column */
+	    nseg = new int[1];
 	    int       w, bcol[], jcol[];
 	    bcol = new int[1];
 	    jcol = new int[1];
@@ -223,7 +241,7 @@ public class Dlu_pdgstrf_thread {
 	    ifill (spa_marker, m * panel_size, EMPTY);
 	    ifill (marker[0], m * NO_MARKER, EMPTY);
 	    ifill (lbusy[0], m, EMPTY);
-	    jcol = EMPTY;
+	    jcol[0] = EMPTY;
 	    marker1 = marker[0] + m;
 	    marker2 = marker[0] + 2*m;
 
@@ -278,11 +296,11 @@ public class Dlu_pdgstrf_thread {
 	}
 			/* A relaxed supernode at the bottom of the etree */
 			pdgstrf_factor_snode
-			    (pnum, jcol, A, diag_pivot_thresh, usepr,
-			     perm_r, inv_perm_r, inv_perm_c, xprune, marker,
-			     panel_lsub, dense, tempv, pxgstrf_shared, info);
+			    (pnum, jcol[0], A, diag_pivot_thresh, usepr,
+			     perm_r, inv_perm_r, inv_perm_c, xprune, marker[0],
+			     panel_lsub[0], dense[0], tempv[0], pxgstrf_shared, info);
 			if ( info[0] != 0 ) {
-			    if ( info[0] > n ) return 0;
+			    if ( info[0] > n ) return null/*0*/;
 			    else if ( singular == 0 || info[0] < singular )
 			        singular = info[0];
 	if ( DEBUGlevel>=1 ) {
@@ -301,14 +319,14 @@ public class Dlu_pdgstrf_thread {
 	if (PROFILE) {
 			TIC(t);
 	}
-			pxgstrf_mark_busy_descends(pnum, jcol, etree, pxgstrf_shared,
-						   &bcol, lbusy);
+			pxgstrf_mark_busy_descends(pnum, jcol[0], etree, pxgstrf_shared,
+						   bcol, lbusy[0]);
 
 			/* Symbolic factor on a panel of columns */
 			pdgstrf_panel_dfs
-			    (pnum, m, w, jcol, A, perm_r, xprune,ispruned,lbusy,
-			     &nseg1, panel_lsub, w_lsub_end, segrep, repfnz,
-			     marker, spa_marker, parent, xplore, dense, Glu);
+			    (pnum, m, w, jcol[0], A, perm_r, xprune,ispruned,lbusy[0],
+			     nseg1, panel_lsub[0], w_lsub_end, segrep[0], repfnz[0],
+			     marker[0], spa_marker, parent[0], xplore[0], dense[0], Glu);
 	if ( DEBUGlevel>=2 ) {
 	  if ( jcol[0]==BADPAN )
 	    printf("(%d) After pdgstrf_panel_dfs(): nseg1 %d, w_lsub_end %d\n",
@@ -323,9 +341,9 @@ public class Dlu_pdgstrf_thread {
 			 * the n-by-w SPA dense[m,w].
 			 */
 			pdgstrf_panel_bmod
-			    (pnum, m, w, jcol, bcol, inv_perm_r, etree,
-			     &nseg1, segrep, repfnz, panel_lsub, w_lsub_end,
-			     spa_marker, dense, tempv, pxgstrf_shared);
+			    (pnum, m, w, jcol[0], bcol[0], inv_perm_r, etree,
+			     nseg1, segrep[0], repfnz[0], panel_lsub[0], w_lsub_end,
+			     spa_marker, dense[0], tempv[0], pxgstrf_shared);
 
 			/*
 			 * All "busy" descendants are "done" now --
@@ -349,7 +367,7 @@ public class Dlu_pdgstrf_thread {
 			/* Inner-factorization, using sup-col algorithm */
 			for ( jj = jcol[0]; jj < jcol[0] + w; jj++) {
 			    k = (jj - jcol[0]) * m; /* index into w-wide arrays */
-			    nseg = nseg1; /* begin after all the panel segments */
+			    nseg[0] = nseg1[0]; /* begin after all the panel segments */
 	if (PROFILE) {
 			    TIC(t);
 	}
@@ -358,16 +376,16 @@ public class Dlu_pdgstrf_thread {
 			        /* jj starts a supernode in H */
 				pxgstrf_super_bnd_dfs
 				    (pnum, m, n, jj, super_bnd[jj], A, perm_r,
-				     inv_perm_r, xprune, ispruned, marker1, parent,
-				     xplore, pxgstrf_shared);
+				     inv_perm_r, xprune, ispruned, marker1, parent[0],
+				     xplore[0], pxgstrf_shared);
 			    }
 
 			    if ( (info[0] = pdgstrf_column_dfs
-				            (pnum, m, jj, jcol, perm_r, ispruned,
-					     &panel_lsub[k],w_lsub_end[jj-jcol[0]],
-					     super_bnd, &nseg, segrep,
-					     &repfnz[k], xprune, marker2,
-					     parent, xplore, pxgstrf_shared)) != 0 )
+				            (pnum, m, jj, jcol[0], perm_r, ispruned,
+					     panel_lsub[k],w_lsub_end[jj-jcol[0]],
+					     super_bnd, nseg, segrep[0],
+					     repfnz[k], xprune, marker2,
+					     parent[0], xplore[0], pxgstrf_shared)) != 0 )
 				return null/*0*/;
 	if (PROFILE) {
 			    TOC(t2, t);
@@ -376,15 +394,15 @@ public class Dlu_pdgstrf_thread {
 			    /* On return, the L supernode is gathered into the
 			       global storage. */
 			    if ( (info[0] = pdgstrf_column_bmod
-				          (pnum, jj, jcol, (nseg - nseg1),
-					   &segrep[nseg1], &repfnz[k],
-					   &dense[k], tempv, pxgstrf_shared, Gstat)) )
-				return 0;
+				          (pnum, jj, jcol[0], (nseg[0] - nseg1[0]),
+					   segrep[nseg1[0]], repfnz[k],
+					   dense[k], tempv[0], pxgstrf_shared, Gstat)) != 0 )
+				return null/*0*/;
 
 			    if ( (info[0] = pdgstrf_pivotL
 				            (pnum, jj, diag_pivot_thresh, usepr,
 					     perm_r, inv_perm_r, inv_perm_c,
-					     &pivrow, Glu, Gstat)) )
+					     pivrow, Glu, Gstat)) != 0 )
 				if ( singular == 0 || info[0] < singular ) {
 				    singular = info[0];
 	if ( DEBUGlevel>=1 ) {
@@ -398,22 +416,22 @@ public class Dlu_pdgstrf_thread {
 
 			    /* copy the U-segments to ucol[*] */
 			    if ( (info[0] = pdgstrf_copy_to_ucol
-				            (pnum,jj,nseg,segrep,&repfnz[k],
-					     perm_r, &dense[k], pxgstrf_shared)) )
-			      return 0;
+				            (pnum,jj,nseg[0],segrep[0],repfnz[k],
+					     perm_r, dense[k], pxgstrf_shared)) != 0 )
+			      return null/*0*/;
 
 			    /* Prune columns [0:jj-1] using column jj */
-			    pxgstrf_pruneL(jj, perm_r, pivrow, nseg, segrep,
-					   &repfnz[k], xprune, ispruned, Glu);
+			    pxgstrf_pruneL(jj, perm_r, pivrow[0], nseg[0], segrep[0],
+					   repfnz[k], xprune, ispruned, Glu);
 
 			    /* Reset repfnz[] for this column */
-			    pxgstrf_resetrep_col (nseg, segrep, &repfnz[k]);
+			    pxgstrf_resetrep_col (nseg[0], segrep[0], repfnz[k]);
 
 	if ( DEBUGlevel>=2 ) {
 	/*  if (jj >= LOCOL && jj <= HICOL) {*/
 	  if ( jj==BADCOL ) {
-	    dprint_lu_col(pnum, "panel:", jcol, jj, w, pivrow, xprune, Glu);
-	    dcheck_zero_vec(pnum, "after pdgstrf_copy_to_ucol() dense_col[]", n, &dense[k]);
+	    dprint_lu_col(pnum, "panel:", jcol[0], jj, w, pivrow[0], xprune, Glu);
+	    dcheck_zero_vec(pnum, "after pdgstrf_copy_to_ucol() dense_col[]", n, dense[k]);
 	  }
 	}
 			} /* for jj ... */

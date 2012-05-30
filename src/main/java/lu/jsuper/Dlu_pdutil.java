@@ -7,6 +7,7 @@
  */
 package lu.jsuper;
 
+import lu.jsuper.Dlu_pdsp_defs.GlobalLU_t;
 import lu.jsuper.Dlu_slu_mt_util.Gstat_t;
 import lu.jsuper.Dlu_slu_mt_util.superlu_memusage_t;
 import lu.jsuper.Dlu_slu_mt_util.trans_t;

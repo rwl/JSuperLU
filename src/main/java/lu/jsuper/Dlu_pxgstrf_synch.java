@@ -247,6 +247,7 @@ public class Dlu_pxgstrf_synch {
 	/*
 	 * Free the storage used by the parallel scheduling algorithm.
 	 */
+	static
 	int ParallelFinalize(pxgstrf_shared_t pxgstrf_shared)
 	{
 	    /* Destroy mutexes */
@@ -364,6 +365,7 @@ public class Dlu_pxgstrf_synch {
 	    return 0;
 	}
 
+	static
 	int NewNsuper(final int pnum, pxgstrf_shared_t pxgstrf_shared, int data[])
 	{
 	    int i;
