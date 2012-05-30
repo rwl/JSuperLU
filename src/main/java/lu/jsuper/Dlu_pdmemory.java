@@ -481,7 +481,7 @@ public class Dlu_pdmemory {
 	 * Free the working storage used by factor routines.
 	 */
 	static
-	void pdgstrf_WorkFree(int iwork[], double dwork[], GlobalLU_t Glu[])
+	void pdgstrf_WorkFree(int iwork[], double dwork[], GlobalLU_t Glu)
 	{
 	    if ( whichspace == LU_space_t.SYSTEM ) {
 		iwork = null;

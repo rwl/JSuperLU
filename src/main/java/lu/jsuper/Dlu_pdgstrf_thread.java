@@ -20,12 +20,24 @@ import static lu.jsuper.Dlu_slu_mt_util.LOCOL;
 import static lu.jsuper.Dlu_slu_mt_util.HICOL;
 import static lu.jsuper.Dlu_slu_mt_util.BADPAN;
 import static lu.jsuper.Dlu_slu_mt_util.BADCOL;
+import static lu.jsuper.Dlu_slu_mt_util.PhaseType.DFS;
 import static lu.jsuper.Dlu_util.ifill;
 
 import static lu.jsuper.Dlu_superlu_timer.SuperLU_timer_;
 
 import static lu.jsuper.Dlu.fflush;
 import static lu.jsuper.Dlu.stdout;
+
+import static lu.jsuper.Dlu_pdmemory.pdgstrf_WorkInit;
+import static lu.jsuper.Dlu_pdmemory.pdgstrf_memory_use;
+import static lu.jsuper.Dlu_pdmemory.pdgstrf_SetRWork;
+import static lu.jsuper.Dlu_pdmemory.pdgstrf_WorkFree;
+
+import static lu.jsuper.Dlu_pmemory.pxgstrf_SetIWork;
+import static lu.jsuper.Dlu_pmemory.intMalloc;
+
+import static lu.jsuper.Dlu_pxgstrf_scheduler.pxgstrf_scheduler;
+import static lu.jsuper.Dlu_pxgstrf_synch.panel_t.RELAXED_SNODE;
 
 
 public class Dlu_pdgstrf_thread {
@@ -143,19 +155,26 @@ public class Dlu_pdgstrf_thread {
 	    int         info[]     = thr_arg.info;
 
 	    /* Local working arrays */
-	    int       iwork[];
-	    double    dwork[];
-	    int	      segrep[], repfnz[], parent[], xplore[];
-	    int	      panel_lsub[]; /* dense[]/panel_lsub[] pair forms a w-wide SPA */
-	    int	      marker[], marker1[], marker2[];
-	    int       lbusy[]; /* "Local busy" array, indicates which descendants
+	    int       iwork[][] = new int[1][];
+	    double    dwork[][] = new double[1][];
+	    int[][]	      segrep, repfnz, parent, xplore;
+	    segrep = new int[1][];
+	    repfnz = new int[1][];
+	    parent = new int[1][];
+	    xplore = new int[1][];
+	    int	      panel_lsub[][]; /* dense[]/panel_lsub[] pair forms a w-wide SPA */
+	    panel_lsub = new int[1][];
+	    int	      marker[][], marker1[], marker2[];
+	    marker = new int[1][];
+	    int       lbusy[][]; /* "Local busy" array, indicates which descendants
 				 were busy when this panel's computation began.
 				 Those columns (s-nodes) are treated specially
 				 during pdgstrf_panel_dfs() and dpanel_bmod(). */
+	    lbusy = new int[1][];
 
 	    int       spa_marker[]; /* size n-by-w */
 	    int       w_lsub_end[]; /* record the end of each column in panel_lsub */
-	    double    dense[], tempv[];
+	    double    dense[][] = new double[1][], tempv[][] = new double[1][];
 	    int       lsub[], xlsub[], xlsub_end[];
 
 	    /* Local scalars */
@@ -163,7 +182,9 @@ public class Dlu_pdgstrf_thread {
 	    int       pivrow;   /* pivotal row number in the original matrix A */
 	    int       nseg1;	/* no of segments in U-column above panel row jcol */
 	    int       nseg;	/* no of segments in each U-column */
-	    int       w, bcol, jcol;
+	    int       w, bcol[], jcol[];
+	    bcol = new int[1];
+	    jcol = new int[1];
 
 	if (PROFILE) {
 	    double utime[] = Gstat.utime;
@@ -188,23 +209,23 @@ public class Dlu_pdgstrf_thread {
 	    xlsub_end  = Glu.xlsub_end;
 
 	    /* Allocate and initialize the per-process working storage. */
-	    if ( (info[0] = pdgstrf_WorkInit(m, panel_size, &iwork, &dwork)) ) {
-		*info += pdgstrf_memory_use(Glu.nzlmax, Glu.nzumax, Glu.nzlumax);
-		return 0;
+	    if ( (info[0] = pdgstrf_WorkInit(m, panel_size, iwork, dwork)) != 0 ) {
+		info[0] += pdgstrf_memory_use(Glu.nzlmax, Glu.nzumax, Glu.nzlumax);
+		return null/*0*/;
 	    }
-	    pxgstrf_SetIWork(m, panel_size, iwork, &segrep, &parent, &xplore,
-		     &repfnz, &panel_lsub, &marker, &lbusy);
-	    pdgstrf_SetRWork(m, panel_size, dwork, &dense, &tempv);
+	    pxgstrf_SetIWork(m, panel_size, iwork[0], segrep, parent, xplore,
+		     repfnz, panel_lsub, marker, lbusy);
+	    pdgstrf_SetRWork(m, panel_size, dwork[0], dense, tempv);
 
 	    /* New data structures to facilitate parallel algorithm */
 	    spa_marker = intMalloc(m * panel_size);
 	    w_lsub_end = intMalloc(panel_size);
 	    ifill (spa_marker, m * panel_size, EMPTY);
-	    ifill (marker, m * NO_MARKER, EMPTY);
-	    ifill (lbusy, m, EMPTY);
+	    ifill (marker[0], m * NO_MARKER, EMPTY);
+	    ifill (lbusy[0], m, EMPTY);
 	    jcol = EMPTY;
-	    marker1 = marker + m;
-	    marker2 = marker + 2*m;
+	    marker1 = marker[0] + m;
+	    marker2 = marker[0] + 2*m;
 
 	if (PROFILE) {
 	    stime = SuperLU_timer_();
@@ -219,10 +240,10 @@ public class Dlu_pdgstrf_thread {
 		TIC(t);
 	}
 		/* Get a panel from the scheduler. */
-		pxgstrf_scheduler(pnum, n, etree, &jcol, &bcol, pxgstrf_shared);
+		pxgstrf_scheduler(pnum, n, etree, jcol, bcol, pxgstrf_shared);
 
 	if ( DEBUGlevel>=1 ) {
-	    if ( jcol>=LOCOL && jcol<=HICOL ) {
+	    if ( jcol[0]>=LOCOL && jcol[0]<=HICOL ) {
 		printf("(%d) Scheduler(): jcol %d, bcol %d, tasks_remain %d\n",
 		       pnum, jcol, bcol, pxgstrf_shared.tasks_remain);
 		fflush(stdout);
@@ -234,23 +255,23 @@ public class Dlu_pdgstrf_thread {
 		Gstat.procstat[pnum].skedtime += t2;
 	}
 
-		if ( jcol != EMPTY ) {
-		    w = pxgstrf_shared.pan_status[jcol].size;
+		if ( jcol[0] != EMPTY ) {
+		    w = pxgstrf_shared.pan_status[jcol[0]].size;
 
 	if ( DEBUGlevel>=3 ) {
 		    printf("P%2d got panel %5d-%5d\ttime %.4f\tpanels_left %d\n",
-			   pnum, jcol, jcol+w-1, SuperLU_timer_(),
+			   pnum, jcol[0], jcol[0]+w-1, SuperLU_timer_(),
 			   pxgstrf_shared.tasks_remain);
 		    fflush(stdout);
 	}
 		    /* Nondomain panels */
 	if (PROFILE) {
 		    flopcnt = Gstat.procstat[pnum].fcops;
-		    Gstat.panstat[jcol].pnum = pnum;
+		    Gstat.panstat[jcol[0]].pnum = pnum;
 		    TIC(t1);
-		    Gstat.panstat[jcol].starttime = t1;
+		    Gstat.panstat[jcol[0]].starttime = t1;
 	}
-		    if ( pxgstrf_shared.pan_status[jcol].type == RELAXED_SNODE ) {
+		    if ( pxgstrf_shared.pan_status[jcol[0]].type == RELAXED_SNODE ) {
 
 	if (PREDICT_OPT) {
 			pdiv = Gstat.procstat[pnum].fcops;
@@ -260,7 +281,7 @@ public class Dlu_pdgstrf_thread {
 			    (pnum, jcol, A, diag_pivot_thresh, usepr,
 			     perm_r, inv_perm_r, inv_perm_c, xprune, marker,
 			     panel_lsub, dense, tempv, pxgstrf_shared, info);
-			if ( info[0] ) {
+			if ( info[0] != 0 ) {
 			    if ( info[0] > n ) return 0;
 			    else if ( singular == 0 || info[0] < singular )
 			        singular = info[0];
@@ -270,11 +291,11 @@ public class Dlu_pdgstrf_thread {
 			}
 
 			/* Release the whole relaxed supernode */
-			for (jj = jcol; jj < jcol + w; ++jj)
+			for (jj = jcol[0]; jj < jcol[0] + w; ++jj)
 			    pxgstrf_shared.spin_locks[jj] = 0;
 	if (PREDICT_OPT) {
 			pdiv = Gstat.procstat[pnum].fcops - pdiv;
-			cp_panel[jcol].pdiv = pdiv;
+			cp_panel[jcol[0]].pdiv = pdiv;
 	}
 		    } else { /* Regular panel */
 	if (PROFILE) {
@@ -289,13 +310,13 @@ public class Dlu_pdgstrf_thread {
 			     &nseg1, panel_lsub, w_lsub_end, segrep, repfnz,
 			     marker, spa_marker, parent, xplore, dense, Glu);
 	if ( DEBUGlevel>=2 ) {
-	  if ( jcol==BADPAN )
+	  if ( jcol[0]==BADPAN )
 	    printf("(%d) After pdgstrf_panel_dfs(): nseg1 %d, w_lsub_end %d\n",
 		   pnum, nseg1, w_lsub_end[0]);
 	}
 	if (PROFILE) {
 			TOC(t2, t);
-			utime[DFS] += t2;
+			utime[DFS.ordinal()] += t2;
 	}
 			/* Numeric sup-panel updates in topological order.
 			 * On return, the update values are temporarily stored in
@@ -318,7 +339,7 @@ public class Dlu_pdgstrf_thread {
 			 * ACCORDING TO PROFILE, THE AMOUNT OF TIME SPENT HERE
 			 * IS NEGLIGIBLE.
 			 */
-			jcolm1 = jcol - 1;
+			jcolm1 = jcol[0] - 1;
 			itemp = xlsub_end[jcolm1];
 			for (k = xlsub[jcolm1]; k < itemp; ++k)
 			    marker2[lsub[k]] = jcolm1;
@@ -326,8 +347,8 @@ public class Dlu_pdgstrf_thread {
 			pdiv = Gstat.procstat[pnum].fcops;
 	}
 			/* Inner-factorization, using sup-col algorithm */
-			for ( jj = jcol; jj < jcol + w; jj++) {
-			    k = (jj - jcol) * m; /* index into w-wide arrays */
+			for ( jj = jcol[0]; jj < jcol[0] + w; jj++) {
+			    k = (jj - jcol[0]) * m; /* index into w-wide arrays */
 			    nseg = nseg1; /* begin after all the panel segments */
 	if (PROFILE) {
 			    TIC(t);
@@ -341,16 +362,16 @@ public class Dlu_pdgstrf_thread {
 				     xplore, pxgstrf_shared);
 			    }
 
-			    if ( (*info = pdgstrf_column_dfs
+			    if ( (info[0] = pdgstrf_column_dfs
 				            (pnum, m, jj, jcol, perm_r, ispruned,
-					     &panel_lsub[k],w_lsub_end[jj-jcol],
+					     &panel_lsub[k],w_lsub_end[jj-jcol[0]],
 					     super_bnd, &nseg, segrep,
 					     &repfnz[k], xprune, marker2,
-					     parent, xplore, pxgstrf_shared)) )
-				return 0;
+					     parent, xplore, pxgstrf_shared)) != 0 )
+				return null/*0*/;
 	if (PROFILE) {
 			    TOC(t2, t);
-			    utime[DFS] += t2;
+			    utime[DFS.ordinal()] += t2;
 	}
 			    /* On return, the L supernode is gathered into the
 			       global storage. */
@@ -399,16 +420,16 @@ public class Dlu_pdgstrf_thread {
 
 	if (PREDICT_OPT) {
 			pdiv = Gstat.procstat[pnum].fcops - pdiv;
-			cp_panel[jcol].pdiv = pdiv;
+			cp_panel[jcol[0]].pdiv = pdiv;
 	}
 
 		    } /* else regular panel ... */
 
-		    STATE( jcol ) = DONE; /* Release panel jcol. */
+		    STATE( jcol[0] ) = DONE; /* Release panel jcol. */
 
 	if (PROFILE) {
-		    TOC(Gstat.panstat[jcol].fctime, t1);
-		    Gstat.panstat[jcol].flopcnt += Gstat.procstat[pnum].fcops - flopcnt;
+		    TOC(Gstat.panstat[jcol[0]].fctime, t1);
+		    Gstat.panstat[jcol[0]].flopcnt += Gstat.procstat[pnum].fcops - flopcnt;
 		    /*if ( Glu.tasks_remain < P ) {
 			flops_last_P_panels += Gstat.panstat[jcol].flopcnt;
 			printf("Panel %d, flops %e\n", jcol, Gstat.panstat[jcol].flopcnt);
@@ -428,14 +449,13 @@ public class Dlu_pdgstrf_thread {
 	    info[0] = singular;
 
 	    /* Free work space and compress storage */
-	    pdgstrf_WorkFree(iwork, dwork, Glu);
+	    pdgstrf_WorkFree(iwork[0], dwork[0], Glu);
 
 	if (PROFILE) {
 	    Gstat.procstat[pnum].fctime = SuperLU_timer_() - stime;
 	}
 
-	    return 0;
+	    return null/*0*/;
 	}
-
 
 }

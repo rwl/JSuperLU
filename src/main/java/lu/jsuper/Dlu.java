@@ -22,6 +22,7 @@ public class Dlu {
 	public static boolean CHK_NZCNT = false;
 	public static boolean DOMAINS = false;
 	public static boolean CHK_EXPAND = false;
+	public static boolean POSTORDER = false;
 
 	public static void printf(String format, Object... args) {
 		System.out.printf(format, args);
