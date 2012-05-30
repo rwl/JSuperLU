@@ -211,7 +211,7 @@ public class Dlu_pdgstrf_thread {
 	}
 
 	if (PREDICT_OPT) {
-	    flops_t  ops[] = Gstat.ops;
+	    float  ops[] = Gstat.ops;
 	    float pdiv;
 	}
 

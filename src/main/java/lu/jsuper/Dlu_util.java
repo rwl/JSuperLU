@@ -367,7 +367,7 @@ public class Dlu_util {
 	    w = SUPERLU_MAX( panel_size, relax ) + 1;
 	    Gstat.panel_histo = intCalloc(w);
 	    Gstat.utime = (double []) doubleMalloc(NPHASES);
-	    Gstat.ops   = new flops_t[NPHASES.ordinal()];
+	    Gstat.ops   = new float[NPHASES.ordinal()];
 
 	    if ( (Gstat.procstat = new procstat_t[nprocs]) == null )
 		SUPERLU_ABORT( "SUPERLU_MALLOC failed for procstat[]" );
@@ -451,7 +451,7 @@ public class Dlu_util {
 	PrintStat(Gstat_t Gstat)
 	{
 	    double         utime[];
-	    flops_t        ops[];
+	    float        ops[];
 
 	    utime = Gstat.utime;
 	    ops   = Gstat.ops;
@@ -496,14 +496,14 @@ public class Dlu_util {
 	}
 
 	static
-	flops_t
+	float
 	LUFactFlops(Gstat_t Gstat)
 	{
 	    return (Gstat.ops[FACT.ordinal()]);
 	}
 
 	static
-	flops_t
+	float
 	LUSolveFlops(Gstat_t Gstat)
 	{
 	    return (Gstat.ops[SOLVE.ordinal()]);
@@ -943,7 +943,7 @@ public class Dlu_util {
 	    Gstat_t Gstat = pxgstrf_shared.Gstat;
 	    int maxpan, i, j, treecnt;
 	    float eft, maxeft; /* earliest (possible) finish time */
-	    flops_t  ops[];
+	    float  ops[];
 
 	    /* Find the longest (weighted) path in the elimination forest. */
 	    treecnt = 0;

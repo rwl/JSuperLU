@@ -9,7 +9,6 @@ import lu.jsuper.Dlu_supermatrix.DNformat;
 import lu.jsuper.Dlu_supermatrix.NCformat;
 import lu.jsuper.Dlu_supermatrix.NRformat;
 import lu.jsuper.Dlu_supermatrix.SCPformat;
-import lu.jsuper.Dlu_supermatrix.Stype_t;
 import lu.jsuper.Dlu_supermatrix.SuperMatrix;
 
 import static lu.jsuper.Dlu_supermatrix.Stype_t.SLU_NC;
@@ -39,16 +38,25 @@ import static lu.jsuper.Dlu_pdutil.dCreate_CompCol_Matrix;
 
 import static lu.jsuper.Dlu_util.StatAlloc;
 import static lu.jsuper.Dlu_util.StatInit;
+import static lu.jsuper.Dlu_util.Destroy_SuperMatrix_Store;
+import static lu.jsuper.Dlu_util.ParallelProfile;
+import static lu.jsuper.Dlu_util.PrintStat;
+import static lu.jsuper.Dlu_util.StatFree;
 
 import static lu.jsuper.Dlu_pdgstrf_init.pdgstrf_init;
+import static lu.jsuper.Dlu_pdgstrf.pdgstrf;
+import static lu.jsuper.Dlu_dgstrs.dgstrs;
+
+import static lu.jsuper.Dlu_pxgstrf_finalize.pxgstrf_finalize;
 
 
 public class Dlu_pdgssv {
 
+	@SuppressWarnings("unused")
 	static
 	void
 	pdgssv(int nprocs, SuperMatrix A, int perm_c[], int perm_r[],
-	       SuperMatrix[] L, SuperMatrix[] U, SuperMatrix B, int[] info )
+	       SuperMatrix L, SuperMatrix U, SuperMatrix B, int[] info )
 	{
 	/*
 	 * -- SuperLU MT routine (version 2.0) --
@@ -164,19 +172,19 @@ public class Dlu_pdgssv {
 	    trans_t  trans;
 	    NCformat Astore;
 	    DNformat Bstore;
-	    SuperMatrix AA; /* A in NC format used by the factorization routine.*/
-	    SuperMatrix AC; /* Matrix postmultiplied by Pc */
+	    SuperMatrix AA = null; /* A in NC format used by the factorization routine.*/
+	    SuperMatrix AC = null; /* Matrix postmultiplied by Pc */
 	    int i, n, panel_size, relax;
 	    fact_t   fact;
 	    yes_no_t refact, usepr;
 	    double diag_pivot_thresh, drop_tol;
 	    double work[];
 	    int lwork;
-	    superlumt_options_t superlumt_options;
-	    Gstat_t  Gstat;
+	    superlumt_options_t superlumt_options = null;
+	    Gstat_t  Gstat = new Gstat_t();
 	    double   t; /* Temporary time */
 	    double   utime[];
-	    flops_t  ops[], flopcnt;
+	    float  ops[], flopcnt;
 
 	    /* ------------------------------------------------------------
 	       Test the input parameters.
@@ -282,7 +290,6 @@ public class Dlu_pdgssv {
 	    pxgstrf_finalize(superlumt_options, AC);
 	    if ( A.Stype == SLU_NR ) {
 		Destroy_SuperMatrix_Store(AA);
-		SUPERLU_FREE(AA);
 	    }
 
 	    /* ------------------------------------------------------------
@@ -290,7 +297,7 @@ public class Dlu_pdgssv {
 	       ------------------------------------------------------------*/
 	if (PROFILE) {
 	    {
-		SCPformat Lstore_ = (SCPformat) L[0].Store;
+		SCPformat Lstore_ = (SCPformat) L.Store;
 		ParallelProfile(n, Lstore_.nsuper+1, Gstat.num_panels, nprocs, Gstat);
 	    }
 	}

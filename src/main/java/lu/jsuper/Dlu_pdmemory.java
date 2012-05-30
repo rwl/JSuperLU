@@ -766,6 +766,7 @@ public class Dlu_pdmemory {
 	    return (buf);
 	}
 
+	static
 	double[] doubleCalloc(int n)
 	{
 	    double[] buf;

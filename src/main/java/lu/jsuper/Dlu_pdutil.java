@@ -450,7 +450,7 @@ public class Dlu_pdutil {
 	    SCPformat Lstore;
 	    NCPformat Ustore;
 	    double   utime[];
-	    flops_t  ops[];
+	    float  ops[];
 
 	    utime = Gstat.utime;
 	    ops   = Gstat.ops;

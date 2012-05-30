@@ -165,7 +165,7 @@ public class Dlu_slu_mt_util {
 	/*
 	 * Type definitions
 	 */
-//	typedef float    flops_t;
+//	typedef float    float;
 //	typedef unsigned char Logical;
 
 
@@ -379,20 +379,20 @@ public class Dlu_slu_mt_util {
 	}
 
 	static class stat_relax_t {
-	     flops_t flops;
+	     float flops;
 	     int     nzs;
 	     double  fctime;
 	}
 
 	static class stat_col_t {
-	     flops_t flops;
+	     float flops;
 	     int nzs;
 	     double fctime;
 	}
 
 	static class stat_snode_t {
 	     int ncols;
-	     flops_t flops;
+	     float flops;
 	     int nzs;
 	     double fctime;
 	}
@@ -414,7 +414,7 @@ public class Dlu_slu_mt_util {
 	static class Gstat_t {
 	    int     	panel_histo[];	/* Panel size distribution */
 	    double  	utime[];
-	    flops_t 	ops[];
+	    float 	ops[];
 	    procstat_t 	procstat[];
 	    panstat_t	panstat[];
 	    int      	num_panels;
@@ -446,7 +446,7 @@ public class Dlu_slu_mt_util {
 	static int     no_sups;
 	static float   sum_sup;        /* Sum (Supi) */
 	static int     max_sup;
-	static flops_t reuse_flops;    /* Triangular solve and matrix vector multiply */
+	static float reuse_flops;    /* Triangular solve and matrix vector multiply */
 	static float   reuse_data;     /* Doubles in updating supernode */
 
 	/* Statistics for blas operations */
@@ -459,8 +459,8 @@ public class Dlu_slu_mt_util {
 	static float   sum_gemv_m;     /* sum of "        "        " */
 	static int     lda_blas_m;
 	static int     lda_blas_n;
-	static flops_t gemv_ops[];      /* flops distribution on (m,n) */
-	static flops_t trsv_ops[];      /* flops distribution on n */
+	static float gemv_ops[];      /* flops distribution on (m,n) */
+	static float trsv_ops[];      /* flops distribution on n */
 
 	static double i_trsv_ops(double[] trsv_ops, int i) {
 		return trsv_ops[i];
