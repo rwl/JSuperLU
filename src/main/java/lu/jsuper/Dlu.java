@@ -7,6 +7,8 @@ public class Dlu {
 	public static final PrintStream stdout = System.out;
 	public static final PrintStream stderr = System.err;
 
+	public static boolean DEBUG = false;
+
 	public static int PRNTlevel = 0;
 	public static int DEBUGlevel = 0;
 	public static boolean PROFILE = false;
@@ -19,6 +21,7 @@ public class Dlu {
 	public static boolean ZFD_PERM = false;
 	public static boolean CHK_NZCNT = false;
 	public static boolean DOMAINS = false;
+	public static boolean CHK_EXPAND = false;
 
 	public static void printf(String format, Object... args) {
 		System.out.printf(format, args);
