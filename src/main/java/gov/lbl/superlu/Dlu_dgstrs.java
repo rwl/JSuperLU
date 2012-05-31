@@ -1,7 +1,5 @@
 package gov.lbl.superlu;
 
-import org.netlib.blas.BLAS;
-
 import gov.lbl.superlu.Dlu_slu_mt_util.Gstat_t;
 import gov.lbl.superlu.Dlu_slu_mt_util.trans_t;
 import gov.lbl.superlu.Dlu_supermatrix.DNformat;
@@ -104,13 +102,13 @@ public class Dlu_dgstrs {
 	 *	   < 0: if info = -i, the i-th argument had an illegal value
 	 *
 	 */
-	    int      incx = 1, incy = 1;
+//	    int      incx = 1, incy = 1;
 	    double   alpha = 1.0, beta = 1.0;
 
 	    int j, k, jcol, iptr, luptr, ksupno, istart, irow, bptr;
 	    int fsupc, nsuper;
 	    int      i, n, nsupc, nsupr, nrow, nrhs, ldb;
-	    int      supno[];
+//	    int      supno[];
 	    DNformat Bstore;
 	    SCPformat Lstore;
 	    NCPformat Ustore;
@@ -145,7 +143,7 @@ public class Dlu_dgstrs {
 	    Lval = Lstore.nzval;
 	    Ustore = (NCPformat) U.Store;
 	    Uval = Ustore.nzval;
-	    supno = Lstore.col_to_sup;
+//	    supno = Lstore.col_to_sup;
 	    nsuper = Lstore.nsuper;
 	    solve_ops = 0;
 
@@ -210,14 +208,14 @@ public class Dlu_dgstrs {
 			for (j = 0, bptr = 0; j < nrhs; j++, bptr += ldb) {
 			    rhs_work = Bmat;
 			    int rhs_work_offset = bptr;
-			    dlsolve (nsupr, nsupc, &Lval[luptr], &rhs_work[rhs_work_offset+fsupc]);
-			    dmatvec (nsupr, nrow, nsupc, &Lval[luptr+nsupc],
-				     &rhs_work[rhs_work_offset+fsupc], &work[0] );
+			    dlsolve (nsupr, nsupc, Lval, luptr, rhs_work, rhs_work_offset+fsupc);
+			    dmatvec (nsupr, nrow, nsupc, Lval, luptr+nsupc,
+				     rhs_work, rhs_work_offset+fsupc, work);
 
 			    iptr = istart + nsupc;
 			    for (i = 0; i < nrow; i++) {
 				irow = L_SUB(Lstore, iptr);
-                rhs_work[rhs_work_offset++irow] -= work[i];
+                rhs_work[rhs_work_offset+irow] -= work[i];
                 work[i] = 0.0;
 				iptr++;
 			    }
@@ -260,7 +258,7 @@ public class Dlu_dgstrs {
 			       Lval, luptr, nsupr, Bmat, fsupc, ldb);
 	} else {
 			for (j = 0, bptr = fsupc; j < nrhs; j++, bptr += ldb) {
-			    dusolve (nsupr, nsupc, &Lval[luptr], &Bmat[bptr]);
+			    dusolve (nsupr, nsupc, Lval, luptr, Bmat, bptr);
 			}
 	}
 		    }

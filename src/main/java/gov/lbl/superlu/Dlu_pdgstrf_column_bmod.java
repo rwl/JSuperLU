@@ -1,7 +1,5 @@
 package gov.lbl.superlu;
 
-import org.netlib.blas.BLAS;
-
 import gov.lbl.superlu.Dlu_pdsp_defs.GlobalLU_t;
 import gov.lbl.superlu.Dlu_pdsp_defs.pxgstrf_shared_t;
 import gov.lbl.superlu.Dlu_slu_mt_util.Gstat_t;
@@ -17,6 +15,8 @@ import static gov.lbl.superlu.Dlu.DEBUGlevel;
 import static gov.lbl.superlu.Dlu.printf;
 import static gov.lbl.superlu.Dlu.USE_VENDOR_BLAS;
 import static gov.lbl.superlu.Dlu.DEBUG;
+import static gov.lbl.superlu.Dlu.dtrsv;
+import static gov.lbl.superlu.Dlu.dgemv;
 
 import static gov.lbl.superlu.Dlu_dmyblas2.dlsolve;
 import static gov.lbl.superlu.Dlu_dmyblas2.dmatvec;
@@ -87,6 +87,7 @@ public class Dlu_pdgstrf_column_bmod {
 	    double       lusup[];
 	    int          xlusup[], xlusup_end[];
 	    double       tempv1[];
+	    int          tempv1_offset;
 	    int          mem_error;
 	    float flopcnt;
 
@@ -212,23 +213,24 @@ public class Dlu_pdgstrf_column_bmod {
 		        /* Dense triangular solve -- start effective triangle */
 			luptr += nsupr * no_zeros + no_zeros;
 	if (USE_VENDOR_BLAS) {
-			BLAS blas = BLAS.getInstance();
-			blas.dtrsv( "L", "N", "U", &segsze, &lusup[luptr],
-			       &nsupr, tempv, &incx );
+			dtrsv( "L", "N", "U", segsze, lusup, luptr,
+			       nsupr, tempv, 0, incx );
 
 	 		luptr += segsze;  /* Dense matrix-vector */
-			tempv1 = &tempv[segsze];
+			tempv1 = tempv;
+			tempv1_offset = segsze;
 			alpha = one;
 			beta = zero;
 
-			blas.dgemv( "N", &nrow, &segsze, &alpha, &lusup[luptr],
-			       &nsupr, tempv, &incx, &beta, tempv1, &incy );
+			dgemv( "N", nrow, segsze, alpha, lusup, luptr,
+			       nsupr, tempv, 0, incx, beta, tempv1, tempv1_offset, incy );
 	} else {
-			dlsolve ( nsupr, segsze, &lusup[luptr], tempv );
+			dlsolve ( nsupr, segsze, lusup, luptr, tempv, 0 );
 
 	 		luptr += segsze;  /* Dense matrix-vector */
-			tempv1 = &tempv[segsze];
-			dmatvec (nsupr, nrow , segsze, &lusup[luptr], tempv, tempv1);
+			tempv1 = tempv;
+			tempv1_offset = segsze;
+			dmatvec (nsupr, nrow , segsze, lusup, luptr, tempv, tempv1_offset, tempv1);
 	}
 	                /* Scatter tempv[] into SPA dense[*] */
 	                isub = lptr + no_zeros;
@@ -282,8 +284,8 @@ public class Dlu_pdgstrf_column_bmod {
 	if ( DEBUGlevel>=2 ) {
 	if (jcol == -1) {
 	    nrow = xlusup_end[jcol] - xlusup[jcol];
-	    print_double_vec("before sup-col update", nrow, &lsub[xlsub[fsupc]],
-			     &lusup[xlusup[jcol]]);
+	    print_double_vec("before sup-col update", nrow, lsub, xlsub[fsupc],
+			     lusup, xlusup[jcol]);
 	}
 	}
 
@@ -325,16 +327,15 @@ public class Dlu_pdgstrf_column_bmod {
 
 	if (USE_VENDOR_BLAS) {
 		alpha = none; beta = one; /* y := beta*y + alpha*A*x */
-		BLAS blas = BLAS.getInstance();
-		blas.dtrsv( "L", "N", "U", &nsupc, &lusup[luptr],
-		       &nsupr, &lusup[ufirst], &incx );
-		blas.dgemv( "N", &nrow, &nsupc, &alpha, &lusup[luptr+nsupc], &nsupr,
-		       &lusup[ufirst], &incx, &beta, &lusup[ufirst+nsupc], &incy );
+		dtrsv( "L", "N", "U", nsupc, lusup, luptr,
+		       nsupr, lusup, ufirst, incx );
+		dgemv( "N", nrow, nsupc, alpha, lusup, luptr+nsupc, nsupr,
+		       lusup, ufirst, incx, beta, lusup, ufirst+nsupc, incy );
 	} else {
-		dlsolve ( nsupr, nsupc, &lusup[luptr], &lusup[ufirst] );
+		dlsolve ( nsupr, nsupc, lusup, luptr, lusup, ufirst );
 
-		dmatvec ( nsupr, nrow, nsupc, &lusup[luptr+nsupc],
-			 &lusup[ufirst], tempv );
+		dmatvec ( nsupr, nrow, nsupc, lusup, luptr+nsupc,
+			 lusup, ufirst, tempv );
 
 	        /* Copy updates from tempv[*] into lusup[*] */
 		isub = ufirst + nsupc;

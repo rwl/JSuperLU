@@ -11,8 +11,6 @@
  */
 package gov.lbl.superlu;
 
-import org.netlib.blas.BLAS;
-
 import gov.lbl.superlu.Dlu_supermatrix.NCPformat;
 import gov.lbl.superlu.Dlu_supermatrix.NCformat;
 import gov.lbl.superlu.Dlu_supermatrix.SCPformat;
@@ -35,6 +33,8 @@ import static gov.lbl.superlu.Dlu_slu_mt_util.U_NZ_END;
 import static gov.lbl.superlu.Dlu_slu_mt_util.U_SUB;
 
 import static gov.lbl.superlu.Dlu.USE_VENDOR_BLAS;
+import static gov.lbl.superlu.Dlu.dtrsv;
+import static gov.lbl.superlu.Dlu.dgemv;
 
 import static gov.lbl.superlu.Dlu_dmyblas2.dlsolve;
 import static gov.lbl.superlu.Dlu_dmyblas2.dmatvec;
@@ -168,17 +168,16 @@ public class Dlu_dsp_blas2 {
 			    }
 			} else {
 	if (USE_VENDOR_BLAS) {
-				BLAS blas = BLAS.getInstance();
-			    blas.dtrsv("L", "N", "U", &nsupc, &Lval[luptr], &nsupr,
-			       	&x[x_offset+fsupc], &incx);
+			    dtrsv("L", "N", "U", nsupc, Lval, luptr, nsupr,
+			       	x, x_offset+fsupc, incx);
 
-			    blas.dgemv("N", &nrow, &nsupc, &alpha, &Lval[luptr+nsupc],
-			       	&nsupr, &x[x_offset+fsupc], &incx, &beta, &work[0], &incy);
+			    dgemv("N", nrow, nsupc, alpha, Lval, luptr+nsupc,
+			       	nsupr, x, x_offset+fsupc, incx, beta, work, 0, incy);
 	} else {
-			    dlsolve (nsupr, nsupc, &Lval[luptr], &x[x_offset+fsupc]);
+			    dlsolve (nsupr, nsupc, Lval, luptr, x, x_offset+fsupc);
 
-			    dmatvec (nsupr, nsupr-nsupc, nsupc, &Lval[luptr+nsupc],
-	                             &x[x_offset+fsupc], &work[0] );
+			    dmatvec (nsupr, nsupr-nsupc, nsupc, Lval, luptr+nsupc,
+	                             x, x_offset+fsupc, work);
 	}
 
 			    iptr = istart + nsupc;
@@ -212,11 +211,10 @@ public class Dlu_dsp_blas2 {
 			    }
 			} else {
 	if (USE_VENDOR_BLAS) {
-				BLAS blas = BLAS.getInstance();
-			    blas.dtrsv("U", "N", "N", &nsupc, &Lval[luptr], &nsupr,
-	                           &x[x_offset+fsupc], &incx);
+			    dtrsv("U", "N", "N", nsupc, Lval, luptr, nsupr,
+	                           x, x_offset+fsupc, incx);
 	} else {
-			    dusolve ( nsupr, nsupc, &Lval[luptr], &x[x_offset+fsupc] );
+			    dusolve ( nsupr, nsupc, Lval, luptr, x, x_offset+fsupc );
 	}
 
 	                    for (jcol = fsupc; jcol < fsupc + nsupc; jcol++) {
@@ -258,9 +256,8 @@ public class Dlu_dsp_blas2 {
 			if ( nsupc > 1 ) {
 			    solve_ops += nsupc * (nsupc - 1);
 
-			    BLAS blas = BLAS.getInstance();
-			    blas.dtrsv("L", "T", "U", &nsupc, &Lval[luptr], &nsupr,
-				&x[x_offset+fsupc], &incx);
+			    dtrsv("L", "T", "U", nsupc, Lval, luptr, nsupr,
+				x, x_offset+fsupc, incx);
 			}
 		    }
 		} else {
@@ -286,9 +283,8 @@ public class Dlu_dsp_blas2 {
 			if ( nsupc == 1 ) {
 			    x[x_offset+fsupc] /= Lval[luptr];
 			} else {
-				BLAS blas = BLAS.getInstance();
-			    blas.dtrsv("U", "T", "N", &nsupc, &Lval[luptr], &nsupr,
-				    &x[x_offset+fsupc], &incx);
+			    dtrsv("U", "T", "N", nsupc, Lval, luptr, nsupr,
+				    x, x_offset+fsupc, incx);
 			}
 		    } /* for k ... */
 		}

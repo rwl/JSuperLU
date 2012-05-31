@@ -507,9 +507,16 @@ public class Dlu_pdutil {
 	static
 	int print_double_vec(String what, int n, int ind[], double vec[])
 	{
+		return print_double_vec(what, n, ind, 0, vec, 0);
+	}
+
+	static
+	int print_double_vec(String what, int n, int ind[], int ind_offset,
+			double vec[], int vec_offset)
+	{
 	    int i;
 	    printf("%s: n %d\n", what, n);
-	    for (i = 0; i < n; ++i) printf("%d\t%f\n", ind[i], vec[i]);
+	    for (i = 0; i < n; ++i) printf("%d\t%f\n", ind[ind_offset+i], vec[vec_offset+i]);
 	    return 0;
 	}
 

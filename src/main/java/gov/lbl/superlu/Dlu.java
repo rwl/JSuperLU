@@ -114,4 +114,40 @@ public class Dlu {
 
 	}
 
+	public static void dtrsv(String uplo, String trans, String diag, int n,
+			double[] a, int lda, double[] x, int incx) {
+		dtrsv(uplo, trans, diag, n, a, 0, lda, x, 0, incx);
+	}
+
+	public static void dtrsv(String uplo, String trans, String diag, int n,
+			double[] a, int a_offset, int lda, double[] x, int x_offset, int incx) {
+
+		BLAS blas = BLAS.getInstance();
+
+		double[] A, X;
+
+		A = new double[lda*n];
+		System.arraycopy(a, a_offset, A, 0, lda*n);
+
+		X = new double[];
+		System.arraycopy(x, x_offset, X, 0, length);
+
+		blas.dtrsv(uplo, trans, diag, n, A, lda, X, incx);
+
+		System.arraycopy(X, 0, x, x_offset, length);
+	}
+
+	public static void dgemv(String trans, int m, int n, double alpha,
+			double[] a, int a_offset, int lda, double[] x, int x_offset, int incx,
+			double beta, double[] y, int y_offset, int incy) {
+
+		BLAS blas = BLAS.getInstance();
+
+		double[] A, X, Y;
+
+		blas.dgemv(trans, m, n, alpha, A, lda, X, incx, beta, Y, incy);
+	}
+
+
+
 }
