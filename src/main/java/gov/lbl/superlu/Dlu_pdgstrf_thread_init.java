@@ -25,6 +25,8 @@ import static gov.lbl.superlu.Dlu_pxgstrf_synch.ParallelInit;
 
 import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
 import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
+import static gov.lbl.superlu.Dlu_pdmemory.dPresetMap;
+import static gov.lbl.superlu.Dlu_pdmemory.pdgstrf_MemInit;
 
 
 public class Dlu_pdgstrf_thread_init {
@@ -154,13 +156,13 @@ public class Dlu_pdgstrf_thread_init {
 	    ParallelInit(n, pxgstrf_relax, options, pxgstrf_shared);
 
 	    /* Set up memory image in lusup[*]. */
-	    nzlumax = dPresetMap(n, A, pxgstrf_relax, options, &Glu);
+	    nzlumax = dPresetMap(n, A, pxgstrf_relax, options, Glu);
 	    if ( options.refact == NO ) Glu.nzlumax = nzlumax;
 
 	    pxgstrf_relax = null;
 
 	    /* Allocate global storage common to all the factor routines */
-	    info[0] = pdgstrf_MemInit(n, Astore.nnz, options, L, U, Glu);
+	    info[0] = (int) pdgstrf_MemInit(n, Astore.nnz, options, L, U, Glu);
 	    if ( info[0] != 0 ) return null;
 
 	    /* Prepare arguments to all threads. */
@@ -168,8 +170,8 @@ public class Dlu_pdgstrf_thread_init {
 	    for (i = 0; i < nprocs; ++i) {
 	        pdgstrf_threadarg[i].pnum = i;
 	        pdgstrf_threadarg[i].info = 0;
-		pdgstrf_threadarg[i].superlumt_options = options;
-		pdgstrf_threadarg[i].pxgstrf_shared = pxgstrf_shared;
+	        pdgstrf_threadarg[i].superlumt_options = options;
+	        pdgstrf_threadarg[i].pxgstrf_shared = pxgstrf_shared;
 	    }
 
 	if ( DEBUGlevel==1 ) {

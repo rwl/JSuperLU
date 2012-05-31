@@ -53,4 +53,15 @@ public class Dlu {
 		System.exit(status);
 	}
 
+	public static String getenv(String name) {
+		return System.getenv(name);
+	}
+
+	public static int[] d2i(double[] d) {
+		int[] iarray = new int[d.length];
+		for (int i = 0; i < d.length; i++)
+			iarray[i] = (int) d[i];
+		return iarray;
+	}
+
 }

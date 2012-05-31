@@ -17,6 +17,8 @@ import static gov.lbl.superlu.Dlu_slu_mt_util.SUPERLU_ABORT;
 import static gov.lbl.superlu.Dlu_slu_mt_util.SUPERLU_MIN;
 import static gov.lbl.superlu.Dlu_sp_coletree.TreePostorder;
 
+import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
+import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
 
 
 public class Dlu_heap_relax_snode {
@@ -42,7 +44,7 @@ public class Dlu_heap_relax_snode {
 	    int et_save[], post[], inv_post[], iwork[];
 	    int nsuper_et = 0, nsuper_et_post = 0;
 
-	    int fcol;	 /* beginning of a snode */
+//	    int fcol;	 /* beginning of a snode */
 	    int desc[];  /* no of descendants of each etree node. */
 	    int et[] = superlumt_options.etree; /* column elimination tree */
 	    int relax = superlumt_options.relax; /* maximum no of columns allowed
@@ -54,17 +56,19 @@ public class Dlu_heap_relax_snode {
 
 	    if ( (iwork = (int[]) intMalloc(3*n+2)) == null )
 		SUPERLU_ABORT("SUPERLU_MALLOC fails for iwork[]");
-	    inv_post = iwork    + n+1;
-	    et_save  = inv_post + n+1;
+	    inv_post = iwork;
+	    int inv_post_offset = n+1;
+	    et_save  = inv_post;
+	    int et_save_offset = n+1;
 
 	    /* Post order etree */
 	    post = (int []) TreePostorder(n, et);
-	    for (i = 0; i < n+1; ++i) inv_post[post[i]] = i;
+	    for (i = 0; i < n+1; ++i) inv_post[inv_post_offset+post[i]] = i;
 
 	    /* Renumber etree in postorder */
 	    for (i = 0; i < n; ++i) {
 	        iwork[post[i]] = post[et[i]];
-		et_save[i] = et[i]; /* Save the original etree */
+		et_save[et_save_offset+i] = et[i]; /* Save the original etree */
 	    }
 	    for (i = 0; i < n; ++i) et[i] = iwork[i];
 
@@ -87,8 +91,8 @@ public class Dlu_heap_relax_snode {
 		/* Found a supernode in postordered etree; j is the last column. */
 		++nsuper_et_post;
 		k = n;
-		for (i = snode_start; i <= j; ++i) k = SUPERLU_MIN(k, inv_post[i]);
-		l = inv_post[j];
+		for (i = snode_start; i <= j; ++i) k = SUPERLU_MIN(k, inv_post[inv_post_offset+i]);
+		l = inv_post[inv_post_offset+j];
 		if ( (l - k) == (j - snode_start) ) {
 		    /* It's also a supernode in the original etree */
 		    pxgstrf_relax[nsuper_et].fcol = snode_start;
@@ -100,7 +104,7 @@ public class Dlu_heap_relax_snode {
 		    ++nsuper_et;
 		} else {
 		    for (i = snode_start; i <= j; ++i) {
-		        l = inv_post[i];
+		        l = inv_post[inv_post_offset+i];
 		        if ( desc[i] == 0 ) { /* leaf */
 			    pxgstrf_relax[nsuper_et].fcol = l; /* relax_end[l] = l;*/
 			    pxgstrf_relax[nsuper_et].size = 1;
@@ -121,7 +125,7 @@ public class Dlu_heap_relax_snode {
 	}
 
 	    /* Recover the original etree */
-	    for (i = 0; i < n; ++i) et[i] = et_save[i];
+	    for (i = 0; i < n; ++i) et[i] = et_save[et_save_offset+i];
 	}
 
 }

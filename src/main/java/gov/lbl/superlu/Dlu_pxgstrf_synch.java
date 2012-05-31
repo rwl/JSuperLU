@@ -14,7 +14,6 @@ import static gov.lbl.superlu.Dlu_slu_mt_util.SUPERLU_MAX;
 import static gov.lbl.superlu.Dlu_slu_mt_util.SUPERLU_MIN;
 import static gov.lbl.superlu.Dlu_slu_mt_util.SUPERLU_ABORT;
 import static gov.lbl.superlu.Dlu_slu_mt_util.EMPTY;
-import static gov.lbl.superlu.Dlu_slu_mt_util.STATE;
 import static gov.lbl.superlu.Dlu_slu_mt_util.Branch;
 
 import static gov.lbl.superlu.Dlu.printf;
@@ -28,6 +27,9 @@ import static gov.lbl.superlu.Dlu.fflush;
 import static gov.lbl.superlu.Dlu.PREDICT_OPT;
 
 import static gov.lbl.superlu.Dlu_superlu_timer.SuperLU_timer_;
+
+import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
+import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
 
 
 public class Dlu_pxgstrf_synch {
@@ -88,6 +90,7 @@ public class Dlu_pxgstrf_synch {
 
 	static boolean SPLIT_TOP = false;
 
+	@SuppressWarnings("unused")
 	static
 	int
 	ParallelInit(int n, pxgstrf_relax_t pxgstrf_relax[],
@@ -99,12 +102,12 @@ public class Dlu_pxgstrf_synch {
 	    int P, w_top, do_split = 0;
 	    panel_t panel_type;
 	    int      panel_histo[] = pxgstrf_shared.Gstat.panel_histo;
-	    int nthr, concurrency, info;
+	    int info;
 	    Gstat_t Gstat = pxgstrf_shared.Gstat;
 
-	    pxgstrf_shared.lu_locks = new pthread_mutex_t[lu_locks_t.NO_GLU_LOCKS.ordinal()];
+	    pxgstrf_shared.lu_locks = new Object[lu_locks_t.NO_GLU_LOCKS.ordinal()];
 	    for (i = 0; i < lu_locks_t.NO_GLU_LOCKS.ordinal(); ++i)
-		pthread_mutex_init(pxgstrf_shared.lu_locks[i], null);
+		pxgstrf_shared.lu_locks[i] = new Object();
 
 	if ( PRNTlevel==1 ) {
 	    printf(".. ParallelInit() ... nprocs %2d\n", superlumt_options.nprocs);
@@ -120,7 +123,7 @@ public class Dlu_pxgstrf_synch {
 	    for (i = 0; i < w; ++i) panel_histo[i] = 0;
 	    pxgstrf_shared.num_splits = 0;
 
-	    if ( (info = queue_init(pxgstrf_shared.taskq, n)) ) {
+	    if ( (info = queue_init(pxgstrf_shared.taskq, n)) != 0 ) {
 		fprintf(stderr, "ParallelInit(): %d\n", info);
 		SUPERLU_ABORT("queue_init fails.");
 	    }
@@ -182,7 +185,8 @@ public class Dlu_pxgstrf_synch {
 		    panel_type = panel_t.REGULAR_PANEL;
 		    pxgstrf_shared.pan_status[i].state = pipe_state_t.UNREADY;
 	if (DOMAINS) {
-		    if ( in_domain[i] == TREE_DOMAIN ) panel_type = TREE_DOMAIN;
+			throw new UnsupportedOperationException();
+//		    if ( in_domain[i] == TREE_DOMAIN ) panel_type = TREE_DOMAIN;
 	}
 		}
 
@@ -221,9 +225,10 @@ public class Dlu_pxgstrf_synch {
 	    printf(".. Split: P %d, #nondomain panels %d\n", P, pxgstrf_shared.tasks_remain);
 	}
 	if (DOMAINS) {
-	    EnqueueDomains(&pxgstrf_shared.taskq, list_head, pxgstrf_shared);
+		throw new UnsupportedOperationException();
+//	    EnqueueDomains(&pxgstrf_shared.taskq, list_head, pxgstrf_shared);
 	} else {
-	    EnqueueRelaxSnode(&pxgstrf_shared.taskq, n, pxgstrf_relax, pxgstrf_shared);
+	    EnqueueRelaxSnode(pxgstrf_shared.taskq, n, pxgstrf_relax, pxgstrf_shared);
 	}
 	if ( PRNTlevel==1 ) {
 	    printf(".. # tasks %d\n", pxgstrf_shared.tasks_remain);
@@ -232,11 +237,11 @@ public class Dlu_pxgstrf_synch {
 
 	if (PREDICT_OPT) {
 	    /* Set up structure describing children */
-	    for (i = 0; i <= n; cp_firstkid[i++] = EMPTY);
+	    for (i = 0; i <= n; Gstat.cp_firstkid[i++] = EMPTY);
 	    for (i = n-1; i >= 0; i--) {
 		dad = etree[i];
-		cp_nextkid[i] = cp_firstkid[dad];
-		cp_firstkid[dad] = i;
+		Gstat.cp_nextkid[i] = Gstat.cp_firstkid[dad];
+		Gstat.cp_firstkid[dad] = i;
 	    }
 	}
 
@@ -253,7 +258,7 @@ public class Dlu_pxgstrf_synch {
 	    /* Destroy mutexes */
 	    int i;
 	    for (i = 0; i < lu_locks_t.NO_GLU_LOCKS.ordinal(); ++i)
-	        pthread_mutex_destroy( pxgstrf_shared.lu_locks[i] );
+	        pxgstrf_shared.lu_locks[i] = null;
 
 	    pxgstrf_shared.lu_locks = null;
 	    pxgstrf_shared.spin_locks = null;
@@ -269,11 +274,12 @@ public class Dlu_pxgstrf_synch {
 	    return 0;
 	}
 
+	static
 	int queue_init(queue_t q, int n)
 	{
 	    if ( n < 1 ) return (-1);
 
-	    q.queue = new qitem_t[n];
+	    q.queue = new int[n];
 	    q.count = 0;
 	    q.head = 0;
 	    q.tail = 0;
@@ -281,6 +287,7 @@ public class Dlu_pxgstrf_synch {
 	    return 0;
 	}
 
+	static
 	int queue_destroy(queue_t q)
 	{
 	    q.queue = null;
@@ -290,7 +297,8 @@ public class Dlu_pxgstrf_synch {
 	/*
 	 * Return value: number of items in the queue
 	 */
-	int Enqueue(queue_t q, qitem_t item)
+	static
+	int Enqueue(queue_t q, int item)
 	{
 	    q.queue[q.tail++] = item;
 	    ++q.count;
@@ -301,7 +309,8 @@ public class Dlu_pxgstrf_synch {
 	 * Return value: >= 0 number of items in the queue
 	 *               = -1 queue is empty
 	 */
-	int Dequeue(queue_t q, qitem_t[] item)
+	static
+	int Dequeue(queue_t q, int[] item)
 	{
 	    if ( q.count <= 0 ) return EMPTY;
 
@@ -310,6 +319,7 @@ public class Dlu_pxgstrf_synch {
 	    return (q.count);
 	}
 
+	static
 	int QueryQueue(queue_t q)
 	{
 	    int     i;
@@ -320,6 +330,7 @@ public class Dlu_pxgstrf_synch {
 	    return 0;
 	}
 
+	static
 	int EnqueueRelaxSnode(queue_t q, int n, pxgstrf_relax_t pxgstrf_relax[],
 			      pxgstrf_shared_t pxgstrf_shared)
 	{
@@ -343,16 +354,16 @@ public class Dlu_pxgstrf_synch {
 	 * A pair of two numbers {root, fst_desc} is added in the queue.
 	 */
 	/*int EnqueueDomains(int P, queue_t *q, struct Branch **proc_domains_h)*/
+	static
 	int EnqueueDomains(queue_t q, Branch list_head,
 			   pxgstrf_shared_t pxgstrf_shared)
 	{
-	    Branch b, thrash;
+	    Branch b;
 
 	/*    for (pnum = 0; pnum < P; ++pnum) {
 		for (b = proc_domains_h[pnum]; b != NULL; ) {*/
 	    b = list_head;
 	    while ( b != null ) {
-		thrash = b;
 		q.queue[q.tail++] = b.root;
 		q.queue[q.tail++] = b.first_desc;
 		q.count = q.count + 2;
@@ -369,19 +380,18 @@ public class Dlu_pxgstrf_synch {
 	int NewNsuper(final int pnum, pxgstrf_shared_t pxgstrf_shared, int data[])
 	{
 	    int i;
-	    double t;
-	    mutex_t lock[] = &pxgstrf_shared.lu_locks[lu_locks_t.NSUPER_LOCK.ordinal()];
+	    double t = 0;
+	    Object lock = pxgstrf_shared.lu_locks[lu_locks_t.NSUPER_LOCK.ordinal()];
 	    Gstat_t Gstat = pxgstrf_shared.Gstat;
 
 	if (PROFILE) {
 	    t = SuperLU_timer_();
 	}
 
-	    pthread_mutex_lock(lock);
+	    synchronized (lock)
 	    {
 	      i = ++(data[0]);
 	    }
-	    pthread_mutex_unlock(lock);
 
 	if (PROFILE) {
 	    Gstat.procstat[pnum].cs_time += SuperLU_timer_() - t;
@@ -390,6 +400,7 @@ public class Dlu_pxgstrf_synch {
 	    return i;
 	}
 
+	static
 	int lockon(int block[])
 	{
 	    while ( block[0] != 0 ) ; /* spin-wait */
@@ -397,13 +408,11 @@ public class Dlu_pxgstrf_synch {
 	    return 0;
 	}
 
+	static
 	int lockoff(int block[])
 	{
 	    block[0] = 0;
 	    return 0;
-	}
-
-
 	}
 
 }

@@ -7,6 +7,8 @@ import static gov.lbl.superlu.Dlu.DOMAINS;
 import static gov.lbl.superlu.Dlu.PRNTlevel;
 import static gov.lbl.superlu.Dlu.printf;
 
+import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
+
 
 public class Dlu_pxgstrf_relax_snode {
 

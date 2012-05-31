@@ -40,6 +40,10 @@ import static gov.lbl.superlu.Dlu_util.StatFree;
 import static gov.lbl.superlu.Dlu_util.StatInit;
 import static gov.lbl.superlu.Dlu_xerbla_.xerbla_;
 
+import static gov.lbl.superlu.Dlu.printf;
+import static gov.lbl.superlu.Dlu.fflush;
+import static gov.lbl.superlu.Dlu.stdout;
+
 
 public class Dlu_pdgssv {
 
@@ -256,13 +260,11 @@ public class Dlu_pdgssv {
 	    ops[FACT.ordinal()] = flopcnt;
 
 	if ( PRNTlevel==1 ) {
-		System.out.
 	    printf("nprocs = %d, flops %e, Mflops %.2f\n",
 		   nprocs, flopcnt, flopcnt/utime[FACT.ordinal()]*1e-6);
-		System.out.
 	    printf("Parameters: w %d, relax %d, maxsuper %d, rowblk %d, colblk %d\n",
 		   sp_ienv(1), sp_ienv(2), sp_ienv(3), sp_ienv(4), sp_ienv(5));
-		System.out.flush();
+		fflush(stdout);
 	}
 
 	    /* ------------------------------------------------------------

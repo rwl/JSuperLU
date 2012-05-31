@@ -1,5 +1,8 @@
 package gov.lbl.superlu;
 
+import static gov.lbl.superlu.Dlu.printf;
+
+
 public class Dlu_xerbla_ {
 
 	static
@@ -35,7 +38,6 @@ public class Dlu_xerbla_ {
 	   =====================================================================
 	*/
 
-	    System.out.
 	    printf("** On entry to %6s, parameter number %2d had an illegal value\n",
 			srname, info);
 

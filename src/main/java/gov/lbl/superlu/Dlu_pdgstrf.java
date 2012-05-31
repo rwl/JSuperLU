@@ -188,11 +188,11 @@ public class Dlu_pdgstrf {
 	    thread_id = new Thread [nprocs];
 
 	    for (final pdgstrf_threadarg_t arg : pdgstrf_threadarg) {
-	    	new Thread(new Runnable() {
+	    	new Thread() {
 				public void run() {
 					pdgstrf_thread(arg);
 				}
-			}).start();
+			}.start();
 		}
 
 //	    for (i = 0; i < nprocs; ++i) {

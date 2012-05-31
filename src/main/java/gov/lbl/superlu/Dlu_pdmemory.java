@@ -26,6 +26,9 @@ import static gov.lbl.superlu.Dlu.fprintf;
 import static gov.lbl.superlu.Dlu.printf;
 import static gov.lbl.superlu.Dlu.stderr;
 import static gov.lbl.superlu.Dlu.stdout;
+import static gov.lbl.superlu.Dlu.d2i;
+import static gov.lbl.superlu.Dlu.getenv;
+
 import static gov.lbl.superlu.Dlu_slu_mt_util.NO_MARKER;
 import static gov.lbl.superlu.Dlu_slu_mt_util.SUPERLU_MAX;
 import static gov.lbl.superlu.Dlu_slu_mt_util.MemType.LSUB;
@@ -34,8 +37,16 @@ import static gov.lbl.superlu.Dlu_slu_mt_util.MemType.UCOL;
 import static gov.lbl.superlu.Dlu_slu_mt_util.MemType.USUB;
 import static gov.lbl.superlu.Dlu_slu_mt_util.yes_no_t.NO;
 import static gov.lbl.superlu.Dlu_slu_mt_util.yes_no_t.YES;
+import static gov.lbl.superlu.Dlu_slu_mt_util.EMPTY;
+
+import static gov.lbl.superlu.Dlu_util.ifill;
 import static gov.lbl.superlu.Dlu_sp_ienv.sp_ienv;
 
+import static gov.lbl.superlu.Dlu_pdutil.dfill;
+
+import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
+import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
+import static gov.lbl.superlu.Dlu_pmemory.copy_mem_int;
 
 
 public class Dlu_pdmemory {
@@ -57,7 +68,7 @@ public class Dlu_pdmemory {
 	    int  used;
 	    int  top1;  /* grow upward, relative to &array[0] */
 	    int  top2;  /* grow downward */
-	    Object array[];
+	    double array[];
 	}
 
 	enum stack_end_t {HEAD, TAIL}
@@ -77,7 +88,7 @@ public class Dlu_pdmemory {
 //	static boolean NotDoubleAlign(int addr) ( (long int)addr & 7 )
 //	static boolean DoubleAlign(int addr)    ( ((long int)addr + 7) & ~7L )
 
-	static int Reduce(int alpha) {
+	static double Reduce(double alpha) {
 		return (alpha + 1) / 2;     /* i.e. (alpha-1)/2 + 1 */
 	}
 
@@ -92,7 +103,7 @@ public class Dlu_pdmemory {
 	 *    lwork > 0: use user-supplied work[] space.
 	 */
 	static
-	void pdgstrf_SetupSpace(Object work[], int lwork)
+	void pdgstrf_SetupSpace(double work[], int lwork)
 	{
 	    if ( lwork == 0 ) {
 	        whichspace = LU_space_t.SYSTEM; /* malloc/free */
@@ -102,29 +113,29 @@ public class Dlu_pdmemory {
 	        stack.used = 0;
 	        stack.top1 = 0;
 	        stack.top2 = lwork;
-	        stack.array = (Object []) work;
+	        stack.array = (double []) work;
 	    }
 	}
 
 
-	static
-	Object[] duser_malloc(int bytes, int which_end)
-	{
-	    Object buf[];
-
-	    if ( StackFull(bytes) ) return (null);
-
-	    if ( which_end == HEAD ) {
-		buf = (char[]) stack.array + stack.top1;
-		stack.top1 += bytes;
-	    } else {
-		stack.top2 -= bytes;
-		buf = (char[]) stack.array + stack.top2;
-	    }
-
-	    stack.used += bytes;
-	    return buf;
-	}
+//	static
+//	Object[] duser_malloc(int bytes, int which_end)
+//	{
+//	    Object buf[];
+//
+//	    if ( StackFull(bytes) ) return (null);
+//
+//	    if ( which_end == HEAD ) {
+//		buf = (char[]) stack.array + stack.top1;
+//		stack.top1 += bytes;
+//	    } else {
+//		stack.top2 -= bytes;
+//		buf = (char[]) stack.array + stack.top2;
+//	    }
+//
+//	    stack.used += bytes;
+//	    return buf;
+//	}
 
 
 	static
@@ -159,7 +170,7 @@ public class Dlu_pdmemory {
 	}
 	    ptmp *= p;
 
-	    return (tmp + ptmp);
+	    return (int) (tmp + ptmp);
 	}
 
 	/*
@@ -235,7 +246,7 @@ public class Dlu_pdmemory {
 	    yes_no_t refact = superlumt_options.refact;
 	    int panel_size = superlumt_options.panel_size;
 	    int lwork = superlumt_options.lwork;
-	    double     work[] = superlumt_options.work;
+	    double   work[] = superlumt_options.work;
 	    int      iword, dword, retries = 0;
 	    SCPformat Lstore;
 	    NCPformat Ustore;
@@ -293,21 +304,22 @@ public class Dlu_pdmemory {
 		    xusub      = intMalloc(n+1);
 		    xusub_end  = intMalloc(n);
 		} else {
-		    xsup       = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD);
-		    xsup_end   = (int [])duser_malloc((n) * iword, stack_end_t.HEAD);
-		    supno      = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD);
-		    xlsub      = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD);
-		    xlsub_end  = (int [])duser_malloc((n) * iword, stack_end_t.HEAD);
-		    xlusup     = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD);
-		    xlusup_end = (int [])duser_malloc((n) * iword, stack_end_t.HEAD);
-		    xusub      = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD);
-		    xusub_end  = (int [])duser_malloc((n) * iword, stack_end_t.HEAD);
+			throw new UnsupportedOperationException();
+//		    xsup       = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD.ordinal());
+//		    xsup_end   = (int [])duser_malloc((n) * iword, stack_end_t.HEAD.ordinal());
+//		    supno      = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD.ordinal());
+//		    xlsub      = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD.ordinal());
+//		    xlsub_end  = (int [])duser_malloc((n) * iword, stack_end_t.HEAD.ordinal());
+//		    xlusup     = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD.ordinal());
+//		    xlusup_end = (int [])duser_malloc((n) * iword, stack_end_t.HEAD.ordinal());
+//		    xusub      = (int [])duser_malloc((n+1) * iword, stack_end_t.HEAD.ordinal());
+//		    xusub_end  = (int [])duser_malloc((n) * iword, stack_end_t.HEAD.ordinal());
 		}
 
 		lusup = (double []) pdgstrf_expand( nzlumax, LUSUP, 0, 0, Glu );
 		ucol  = (double []) pdgstrf_expand( nzumax, UCOL, 0, 0, Glu );
-		lsub  = (int [])    pdgstrf_expand( nzlmax, LSUB, 0, 0, Glu );
-		usub  = (int [])    pdgstrf_expand( nzumax, USUB, 0, 1, Glu );
+		lsub  = (int [])    d2i( pdgstrf_expand( nzlmax, LSUB, 0, 0, Glu ) );
+		usub  = (int [])    d2i( pdgstrf_expand( nzumax, USUB, 0, 1, Glu ) );
 
 		while ( ucol == null || lsub == null || usub == null ) {
 		    /*SUPERLU_ABORT("Not enough core in LUMemInit()");*/
@@ -319,7 +331,8 @@ public class Dlu_pdmemory {
 			lsub = null;
 			usub = null;
 		    } else {
-			duser_free(nzumax[0]*dword+(nzlmax[0]+nzumax[0])*iword, stack_end_t.HEAD);
+		    throw new UnsupportedOperationException();
+//			duser_free(nzumax[0]*dword+(nzlmax[0]+nzumax[0])*iword, stack_end_t.HEAD);
 		    }
 		    nzumax[0] /= 2;    /* reduce request */
 		    nzlmax[0] /= 2;
@@ -328,8 +341,8 @@ public class Dlu_pdmemory {
 			return (pdgstrf_memory_use(nzlmax[0], nzumax[0], nzlumax[0]) + n);
 		    }
 		    ucol  = (double []) pdgstrf_expand( nzumax, UCOL, 0, 0, Glu );
-		    lsub  = (int [])    pdgstrf_expand( nzlmax, LSUB, 0, 0, Glu );
-		    usub  = (int [])    pdgstrf_expand( nzumax, USUB, 0, 1, Glu );
+		    lsub  = (int [])    d2i( pdgstrf_expand( nzlmax, LSUB, 0, 0, Glu ) );
+		    usub  = (int [])    d2i( pdgstrf_expand( nzumax, USUB, 0, 1, Glu ) );
 		}
 
 		if ( lusup == null )  {
@@ -367,9 +380,9 @@ public class Dlu_pdmemory {
 		    stack.top2 = lwork;
 		}
 
-		lsub  = dexpanders[LSUB.ordinal()].mem  = Lstore.rowind;
+		lsub  = Lstore.rowind = d2i( dexpanders[LSUB.ordinal()].mem );
 		lusup = dexpanders[LUSUP.ordinal()].mem = Lstore.nzval;
-		usub  = dexpanders[USUB.ordinal()].mem  = Ustore.rowind;
+		usub  = Ustore.rowind = d2i( dexpanders[USUB.ordinal()].mem );
 		ucol  = dexpanders[UCOL.ordinal()].mem  = Ustore.nzval;;
 
 		dexpanders[LSUB.ordinal()].size         = nzlmax[0];
@@ -428,27 +441,29 @@ public class Dlu_pdmemory {
 	    if ( whichspace == LU_space_t.SYSTEM )
 		iworkptr[0] = (int []) intCalloc(isize/32/*sizeof(int)*/);
 	    else
-		iworkptr[0] = (int []) duser_malloc(isize, stack_end_t.TAIL);
+	    throw new UnsupportedOperationException();
+//		iworkptr[0] = (int []) duser_malloc(isize, stack_end_t.TAIL);
 	    if ( iworkptr[0] == null ) {
 		fprintf(stderr, "pdgstrf_WorkInit: malloc fails for local iworkptr[]\n");
 		return (isize + n);
 	    }
 
 	    if ( whichspace == LU_space_t.SYSTEM )
-		dworkptr[0] = (double []) SUPERLU_MALLOC(dsize);
+		dworkptr[0] = new double [dsize];
 	    else {
-		dworkptr[0] = (double []) duser_malloc(dsize, stack_end_t.TAIL);
-		if ( NotDoubleAlign(dworkptr[0]) ) {
-		    old_ptr = dworkptr[0];
-		    dworkptr[0] = (double[]) DoubleAlign(dworkptr[0]);
-		    dworkptr[0] = (double[]) ((double[])dworkptr[0] - 1);
-		    extra = (char[])old_ptr - (char[])dworkptr[0];
-	if (CHK_EXPAND) {
-		    printf("pdgstrf_WorkInit: not aligned, extra %d\n", extra);
-	}
-		    stack.top2 -= extra;
-		    stack.used += extra;
-		}
+	    throw new UnsupportedOperationException();
+//		dworkptr[0] = (double []) duser_malloc(dsize, stack_end_t.TAIL);
+//		if ( NotDoubleAlign(dworkptr[0]) ) {
+//		    old_ptr = dworkptr[0];
+//		    dworkptr[0] = (double[]) DoubleAlign(dworkptr[0]);
+//		    dworkptr[0] = (double[]) ((double[])dworkptr[0] - 1);
+//		    extra = (char[])old_ptr - (char[])dworkptr[0];
+//	if (CHK_EXPAND) {
+//		    printf("pdgstrf_WorkInit: not aligned, extra %d\n", extra);
+//	}
+//		    stack.top2 -= extra;
+//		    stack.used += extra;
+//		}
 	    }
 	    if ( dworkptr[0] == null ) {
 		fprintf(stderr, "malloc fails for local dworkptr[].");
@@ -462,20 +477,20 @@ public class Dlu_pdmemory {
 	/*
 	 * Set up pointers for real working arrays.
 	 */
-	static
-	void
-	pdgstrf_SetRWork(int n, int panel_size, double dworkptr[],
-			 double dense[][], double tempv[][])
-	{
-	    double zero = 0.0;
-
-	    int maxsuper = sp_ienv(3);
-	    int rowblk   = sp_ienv(4);
-	    dense[0] = dworkptr;
-	    tempv[0] = dense[0] + panel_size*n;
-	    dfill (dense[0], n * panel_size, zero);
-	    dfill (tempv[0], NUM_TEMPV(n,panel_size,maxsuper,rowblk), zero);
-	}
+//	static
+//	void
+//	pdgstrf_SetRWork(int n, int panel_size, double dworkptr[],
+//			 double dense[][], double tempv[][])
+//	{
+//	    double zero = 0.0;
+//
+//	    int maxsuper = sp_ienv(3);
+//	    int rowblk   = sp_ienv(4);
+//	    dense[0] = dworkptr;
+//	    tempv[0] = dense[0] + panel_size*n;
+//	    dfill (dense[0], n * panel_size, zero);
+//	    dfill (tempv[0], NUM_TEMPV(n,panel_size,maxsuper,rowblk), zero);
+//	}
 
 	/*
 	 * Free the working storage used by factor routines.
@@ -499,7 +514,7 @@ public class Dlu_pdmemory {
 	 *               > 0 - number of bytes allocated when run out of space
 	 */
 	int
-	pdgstrf_MemXpand(
+	pdgstrf_MemXpand_int(
 			 int jcol,
 			 int next, /* number of elements currently in the factors */
 			 MemType mem_type,/* which type of memory to expand  */
@@ -507,7 +522,66 @@ public class Dlu_pdmemory {
 			 GlobalLU_t Glu /* modified - global LU data structures */
 			 )
 	{
-	    Object   new_mem[];
+	    int new_mem[];
+
+	if (CHK_EXPAND) {
+	    printf("pdgstrf_MemXpand(): jcol %d, next %d, maxlen %d, MemType %d\n",
+		   jcol, next, maxlen[0], mem_type);
+	}
+
+	    if (mem_type == USUB)
+	    	new_mem = d2i( pdgstrf_expand(maxlen, mem_type, next, 1, Glu) );
+	    else
+	    	new_mem = d2i( pdgstrf_expand(maxlen, mem_type, next, 0, Glu) );
+
+	    if ( new_mem == null ) {
+		int    nzlmax  = Glu.nzlmax;
+		int    nzumax  = Glu.nzumax;
+		int    nzlumax = Glu.nzlumax;
+	    	fprintf(stderr, "Can't expand MemType %d: jcol %d\n", mem_type, jcol);
+	    	return (int) (pdgstrf_memory_use(nzlmax, nzumax, nzlumax) + ndim);
+	    }
+
+	    switch ( mem_type ) {
+	      case LUSUP:
+	    throw new UnsupportedOperationException();
+//		Glu.lusup   = (double []) new_mem;
+//		Glu.nzlumax = maxlen;
+//		break;
+	      case UCOL:
+	    throw new UnsupportedOperationException();
+//		Glu.ucol   = (double []) new_mem;
+//		Glu.nzumax = maxlen;
+//		break;
+	      case LSUB:
+		Glu.lsub   = (int []) new_mem;
+		Glu.nzlmax = maxlen[0];
+		break;
+	      case USUB:
+		Glu.usub   = (int []) new_mem;
+		Glu.nzumax = maxlen[0];
+		break;
+	    }
+
+	    return 0;
+
+	}
+
+	/*
+	 * Expand the data structures for L and U during the factorization.
+	 * Return value:   0 - successful return
+	 *               > 0 - number of bytes allocated when run out of space
+	 */
+	int
+	pdgstrf_MemXpand_dbl(
+			 int jcol,
+			 int next, /* number of elements currently in the factors */
+			 MemType mem_type,/* which type of memory to expand  */
+			 int maxlen[], /* modified - max. length of a data structure */
+			 GlobalLU_t Glu /* modified - global LU data structures */
+			 )
+	{
+	    double new_mem[];
 
 	if (CHK_EXPAND) {
 	    printf("pdgstrf_MemXpand(): jcol %d, next %d, maxlen %d, MemType %d\n",
@@ -517,33 +591,35 @@ public class Dlu_pdmemory {
 	    if (mem_type == USUB)
 	    	new_mem = pdgstrf_expand(maxlen, mem_type, next, 1, Glu);
 	    else
-		new_mem = pdgstrf_expand(maxlen, mem_type, next, 0, Glu);
+	    	new_mem = pdgstrf_expand(maxlen, mem_type, next, 0, Glu);
 
 	    if ( new_mem == null ) {
 		int    nzlmax  = Glu.nzlmax;
 		int    nzumax  = Glu.nzumax;
 		int    nzlumax = Glu.nzlumax;
 	    	fprintf(stderr, "Can't expand MemType %d: jcol %d\n", mem_type, jcol);
-	    	return (pdgstrf_memory_use(nzlmax, nzumax, nzlumax) + ndim);
+	    	return (int) (pdgstrf_memory_use(nzlmax, nzumax, nzlumax) + ndim);
 	    }
 
 	    switch ( mem_type ) {
 	      case LUSUP:
 		Glu.lusup   = (double []) new_mem;
-		Glu.nzlumax = maxlen;
+		Glu.nzlumax = maxlen[0];
 		break;
 	      case UCOL:
 		Glu.ucol   = (double []) new_mem;
-		Glu.nzumax = maxlen;
+		Glu.nzumax = maxlen[0];
 		break;
 	      case LSUB:
-		Glu.lsub   = (int []) new_mem;
-		Glu.nzlmax = maxlen;
-		break;
+	  	throw new UnsupportedOperationException();
+//		Glu.lsub   = (int []) new_mem;
+//		Glu.nzlmax = maxlen[0];
+//		break;
 	      case USUB:
-		Glu.usub   = (int []) new_mem;
-		Glu.nzumax = maxlen;
-		break;
+	  	throw new UnsupportedOperationException();
+//		Glu.usub   = (int []) new_mem;
+//		Glu.nzumax = maxlen[0];
+//		break;
 	    }
 
 	    return 0;
@@ -566,7 +642,7 @@ public class Dlu_pdmemory {
 	 * Expand the existing storage to accommodate more fill-ins.
 	 */
 	static
-	Object[]
+	double[]
 	pdgstrf_expand(
 	                int prev_len[],  /* length used from previous call */
 	                MemType type,    /* which part of the memory to expand */
@@ -577,7 +653,7 @@ public class Dlu_pdmemory {
 	                )
 	{
 	    double   alpha = EXPAND;
-	    Object   new_mem[], old_mem[];
+	    double   new_mem[], old_mem[];
 	    int      new_len, tries, lword, extra, bytes_to_copy;
 
 	    if ( no_expand == 0 || keep_prev != 0 ) /* First time allocate requested */
@@ -586,11 +662,12 @@ public class Dlu_pdmemory {
 	        new_len = (int) (alpha * prev_len[0]);
 	    }
 
-	    if ( type == LSUB || type == USUB ) lword = 32/*sizeof(int)*/;
-	    else lword = 64/*sizeof(double)*/;
+//	    if ( type == LSUB || type == USUB ) lword = 32/*sizeof(int)*/;
+//	    else lword = 64/*sizeof(double)*/;
 
 	    if ( whichspace == LU_space_t.SYSTEM ) {
-	        new_mem = (Object []) SUPERLU_MALLOC( (size_t) new_len * lword );
+//	        new_mem = (Object []) SUPERLU_MALLOC( (size_t) new_len * lword );
+	    	new_mem = new double[new_len];
 
 	        if ( no_expand != 0 ) {
 	            tries = 0;
@@ -600,77 +677,80 @@ public class Dlu_pdmemory {
 	                while ( new_mem == null ) {
 	                    if ( ++tries > 10 ) return (null);
 	                    alpha = Reduce(alpha);
-	                    new_len = alpha * prev_len[0];
-	                    new_mem = (Object []) SUPERLU_MALLOC((size_t) new_len * lword);
+	                    new_len = (int) (alpha * prev_len[0]);
+//	                    new_mem = (Object []) SUPERLU_MALLOC((size_t) new_len * lword);
+	                    new_mem = new double[new_len];
 	                }
 	            }
 	            if ( type == LSUB || type == USUB ) {
-	                copy_mem_int(len_to_copy, dexpanders[type.ordinal()].mem, new_mem);
+//	                copy_mem_int(len_to_copy, dexpanders[type.ordinal()].mem, new_mem);
+	                copy_mem_double(len_to_copy, dexpanders[type.ordinal()].mem, new_mem);
 	            } else {
 	                copy_mem_double(len_to_copy, dexpanders[type.ordinal()].mem, new_mem);
 	            }
 	            dexpanders[type.ordinal()].mem = null;
 	        }
-	        dexpanders[type.ordinal()].mem = (Object []) new_mem;
+	        dexpanders[type.ordinal()].mem = (double []) new_mem;
 
 	    } else { /* whichspace == USER */
-	        if ( no_expand == 0 ) {
-	            new_mem = duser_malloc(new_len * lword, HEAD);
-	            if ( NotDoubleAlign(new_mem) &&
-	                (type == LUSUP || type == UCOL) ) {
-	                old_mem = new_mem;
-	                new_mem = (Object [])DoubleAlign(new_mem);
-	                extra = (char[])new_mem - (char[])old_mem;
-	if (CHK_EXPAND) {
-	                printf("expand(): not aligned, extra %d\n", extra);
-	}
-	                stack.top1 += extra;
-	                stack.used += extra;
-	            }
-	            dexpanders[type.ordinal()].mem = (Object []) new_mem;
-	        }
-	        else {
-	            tries = 0;
-	            extra = (new_len - prev_len[0]) * lword;
-	            if ( keep_prev != 0 ) {
-	                if ( StackFull(extra) ) return (null);
-	            } else {
-	                while ( StackFull(extra) ) {
-	                    if ( ++tries > 10 ) return (null);
-	                    alpha = Reduce(alpha);
-	                    new_len = alpha * prev_len[0];
-	                    extra = (new_len - prev_len[0]) * lword;
-	                }
-	            }
-
-	            if ( type != USUB ) {
-	                new_mem = (Object[])((char[])dexpanders[type.ordinal() + 1].mem + extra);
-	                bytes_to_copy = (char[])stack.array + stack.top1
-	                    - (char[])dexpanders[type.ordinal() + 1].mem;
-	                user_bcopy(dexpanders[type.ordinal()+1].mem, new_mem, bytes_to_copy);
-
-	                if ( type.ordinal() < USUB.ordinal() ) {
-	                    Glu.usub = dexpanders[USUB.ordinal()].mem =
-	                        (Object[])((char[])dexpanders[USUB.ordinal()].mem + extra);
-	                }
-	                if ( type.ordinal() < LSUB.ordinal() ) {
-	                    Glu.lsub = dexpanders[LSUB.ordinal()].mem =
-	                        (Object[])((char[])dexpanders[LSUB.ordinal()].mem + extra);
-	                }
-	                if ( type.ordinal() < UCOL.ordinal() ) {
-	                    Glu.ucol = dexpanders[UCOL.ordinal()].mem =
-	                        (Object[])((char[])dexpanders[UCOL.ordinal()].mem + extra);
-	                }
-	                stack.top1 += extra;
-	                stack.used += extra;
-	                if ( type == UCOL ) {
-	                    stack.top1 += extra;   /* Add same amount for USUB */
-	                    stack.used += extra;
-	                }
-
-	            } /* if ... */
-
-	        } /* else ... */
+	    	throw new UnsupportedOperationException();
+//	        if ( no_expand == 0 ) {
+//	            new_mem = duser_malloc(new_len * lword, HEAD);
+//	            if ( NotDoubleAlign(new_mem) &&
+//	                (type == LUSUP || type == UCOL) ) {
+//	                old_mem = new_mem;
+//	                new_mem = (Object [])DoubleAlign(new_mem);
+//	                extra = (char[])new_mem - (char[])old_mem;
+//	if (CHK_EXPAND) {
+//	                printf("expand(): not aligned, extra %d\n", extra);
+//	}
+//	                stack.top1 += extra;
+//	                stack.used += extra;
+//	            }
+//	            dexpanders[type.ordinal()].mem = (Object []) new_mem;
+//	        }
+//	        else {
+//	            tries = 0;
+//	            extra = (new_len - prev_len[0]) * lword;
+//	            if ( keep_prev != 0 ) {
+//	                if ( StackFull(extra) ) return (null);
+//	            } else {
+//	                while ( StackFull(extra) ) {
+//	                    if ( ++tries > 10 ) return (null);
+//	                    alpha = Reduce(alpha);
+//	                    new_len = alpha * prev_len[0];
+//	                    extra = (new_len - prev_len[0]) * lword;
+//	                }
+//	            }
+//
+//	            if ( type != USUB ) {
+//	                new_mem = (Object[])((char[])dexpanders[type.ordinal() + 1].mem + extra);
+//	                bytes_to_copy = (char[])stack.array + stack.top1
+//	                    - (char[])dexpanders[type.ordinal() + 1].mem;
+//	                user_bcopy(dexpanders[type.ordinal()+1].mem, new_mem, bytes_to_copy);
+//
+//	                if ( type.ordinal() < USUB.ordinal() ) {
+//	                    Glu.usub = dexpanders[USUB.ordinal()].mem =
+//	                        (Object[])((char[])dexpanders[USUB.ordinal()].mem + extra);
+//	                }
+//	                if ( type.ordinal() < LSUB.ordinal() ) {
+//	                    Glu.lsub = dexpanders[LSUB.ordinal()].mem =
+//	                        (Object[])((char[])dexpanders[LSUB.ordinal()].mem + extra);
+//	                }
+//	                if ( type.ordinal() < UCOL.ordinal() ) {
+//	                    Glu.ucol = dexpanders[UCOL.ordinal()].mem =
+//	                        (Object[])((char[])dexpanders[UCOL.ordinal()].mem + extra);
+//	                }
+//	                stack.top1 += extra;
+//	                stack.used += extra;
+//	                if ( type == UCOL ) {
+//	                    stack.top1 += extra;   /* Add same amount for USUB */
+//	                    stack.used += extra;
+//	                }
+//
+//	            } /* if ... */
+//
+//	        } /* else ... */
 	    }
 	if (DEBUG) {
 	    printf("pdgstrf_expand[type %d]\n", type.ordinal());
@@ -679,7 +759,7 @@ public class Dlu_pdmemory {
 	    prev_len[0] = new_len;
 	    if ( no_expand != 0 ) ++no_expand;
 
-	    return (Object []) dexpanders[type.ordinal()].mem;
+	    return (double []) dexpanders[type.ordinal()].mem;
 
 	} /* expand */
 
@@ -687,60 +767,60 @@ public class Dlu_pdmemory {
 	/*
 	 * Compress the work[] array to remove fragmentation.
 	 */
-	static
-	void
-	pdgstrf_StackCompress(GlobalLU_t Glu)
-	{
-	    int iword, dword;
-	    char     last[], fragment[];
-	    int      ifrom[], ito[];
-	    double   dfrom[], dto[];
-	    int      xlsub[], lsub[], xusub_end[], usub[], xlusup[];
-	    double   ucol[], lusup[];
-
-	    iword = 32/*sizeof(int)*/;
-	    dword = 64/*sizeof(double)*/;
-
-	    xlsub  = Glu.xlsub;
-	    lsub   = Glu.lsub;
-	    xusub_end  = Glu.xusub_end;
-	    usub   = Glu.usub;
-	    xlusup = Glu.xlusup;
-	    ucol   = Glu.ucol;
-	    lusup  = Glu.lusup;
-
-	    dfrom = ucol;
-	    dto = (double [])((char[])lusup + xlusup[ndim] * dword);
-	    copy_mem_double(xusub_end[ndim-1], dfrom, dto);
-	    ucol = dto;
-
-	    ifrom = lsub;
-	    ito = (int []) ((char[])ucol + xusub_end[ndim-1] * iword);
-	    copy_mem_int(xlsub[ndim], ifrom, ito);
-	    lsub = ito;
-
-	    ifrom = usub;
-	    ito = (int []) ((char[])lsub + xlsub[ndim] * iword);
-	    copy_mem_int(xusub_end[ndim-1], ifrom, ito);
-	    usub = ito;
-
-	    last = (char[])usub + xusub_end[ndim-1] * iword;
-	    fragment = (char[]) ((char[])stack.array + stack.top1 - last);
-	    stack.used -= (long) fragment;
-	    stack.top1 -= (long) fragment;
-
-	    Glu.ucol = ucol;
-	    Glu.lsub = lsub;
-	    Glu.usub = usub;
-
-	if (CHK_EXPAND) {
-	    printf("pdgstrf_StackCompress: fragment %d\n", fragment);
-	    /* PrintStack("After compress", Glu);
-	    for (last = 0; last < ndim; ++last)
-		print_lu_col("After compress:", last, 0);*/
-	}
-
-	}
+//	static
+//	void
+//	pdgstrf_StackCompress(GlobalLU_t Glu)
+//	{
+//	    int iword, dword;
+//	    char     last[], fragment[];
+//	    int      ifrom[], ito[];
+//	    double   dfrom[], dto[];
+//	    int      xlsub[], lsub[], xusub_end[], usub[], xlusup[];
+//	    double   ucol[], lusup[];
+//
+//	    iword = 32/*sizeof(int)*/;
+//	    dword = 64/*sizeof(double)*/;
+//
+//	    xlsub  = Glu.xlsub;
+//	    lsub   = Glu.lsub;
+//	    xusub_end  = Glu.xusub_end;
+//	    usub   = Glu.usub;
+//	    xlusup = Glu.xlusup;
+//	    ucol   = Glu.ucol;
+//	    lusup  = Glu.lusup;
+//
+//	    dfrom = ucol;
+//	    dto = (double [])((char[])lusup + xlusup[ndim] * dword);
+//	    copy_mem_double(xusub_end[ndim-1], dfrom, dto);
+//	    ucol = dto;
+//
+//	    ifrom = lsub;
+//	    ito = (int []) ((char[])ucol + xusub_end[ndim-1] * iword);
+//	    copy_mem_int(xlsub[ndim], ifrom, ito);
+//	    lsub = ito;
+//
+//	    ifrom = usub;
+//	    ito = (int []) ((char[])lsub + xlsub[ndim] * iword);
+//	    copy_mem_int(xusub_end[ndim-1], ifrom, ito);
+//	    usub = ito;
+//
+//	    last = (char[])usub + xusub_end[ndim-1] * iword;
+//	    fragment = (char[]) ((char[])stack.array + stack.top1 - last);
+//	    stack.used -= (long) fragment;
+//	    stack.top1 -= (long) fragment;
+//
+//	    Glu.ucol = ucol;
+//	    Glu.lsub = lsub;
+//	    Glu.usub = usub;
+//
+//	if (CHK_EXPAND) {
+//	    printf("pdgstrf_StackCompress: fragment %d\n", fragment);
+//	    /* PrintStack("After compress", Glu);
+//	    for (last = 0; last < ndim; ++last)
+//		print_lu_col("After compress:", last, 0);*/
+//	}
+//
+//	}
 
 	/*
 	 * Allocate storage for original matrix A
@@ -758,11 +838,12 @@ public class Dlu_pdmemory {
 	double[] doubleMalloc(int n)
 	{
 	    double buf[];
-	    buf = (double []) SUPERLU_MALLOC( (size_t) n * 64/*sizeof(double)*/ );
-	    if ( buf == null ) {
-		fprintf(stderr, "SUPERLU_MALLOC failed for buf in doubleMalloc()");
-		exit (1);
-	    }
+	    buf = (double []) new double[n];
+//	    buf = (double []) SUPERLU_MALLOC( (size_t) n * 64/*sizeof(double)*/ );
+//	    if ( buf == null ) {
+//		fprintf(stderr, "SUPERLU_MALLOC failed for buf in doubleMalloc()");
+//		exit (1);
+//	    }
 	    return (buf);
 	}
 
@@ -772,11 +853,12 @@ public class Dlu_pdmemory {
 	    double[] buf;
 	    int i;
 	    double zero = 0.0;
-	    buf = (double []) SUPERLU_MALLOC( (size_t) n * 64/*sizeof(double)*/ );
-	    if ( !buf ) {
-		fprintf(stderr, "SUPERLU_MALLOC failed for buf in doubleCalloc()");
-		exit (1);
-	    }
+	    buf = (double []) new double[n];
+//	    buf = (double []) SUPERLU_MALLOC( (size_t) n * 64/*sizeof(double)*/ );
+//	    if ( !buf ) {
+//		fprintf(stderr, "SUPERLU_MALLOC failed for buf in doubleCalloc()");
+//		exit (1);
+//	    }
 	    for (i = 0; i < n; ++i) buf[i] = zero;
 	    return (buf);
 	}
@@ -805,24 +887,24 @@ public class Dlu_pdmemory {
 		  GlobalLU_t Glu /* modified */
 		  )
 	{
-	    int i, j, k, w, rs, rs_lastcol, krow, kmark, maxsup, nextpos;
+	    int i, j, k = 0, w, rs, rs_lastcol, krow, kmark, maxsup, nextpos;
 	    int rs_nrow; /* number of nonzero rows in a relaxed supernode */
 	    int          marker[], asub[], xa_begin[], xa_end[];
 	    NCPformat    Astore;
 	    int map_in_sup[]; /* memory mapping function; values irrelevant on entry. */
 	    int colcnt[];     /* column count of Lc or H */
 	    int super_bnd[];  /* supernodes partition in H */
-	    char snode_env[]/*, *getenv()*/;
+	    String snode_env/*, *getenv()*/;
 
 	    snode_env = getenv("SuperLU_DYNAMIC_SNODE_STORE");
 	    if ( snode_env != null ) {
-		Glu.dynamic_snode_bound = YES;
+		Glu.dynamic_snode_bound = YES.ordinal();
 	if ( PRNTlevel>=1 ) {
 		printf(".. Use dynamic alg. to allocate storage for L supernodes.\n");
 	}
-	    } else  Glu.dynamic_snode_bound = NO;
+	    } else  Glu.dynamic_snode_bound = NO.ordinal();
 
-	    Astore   = A.Store;
+	    Astore   = (NCPformat) A.Store;
 	    asub     = Astore.rowind;
 	    xa_begin = Astore.colbeg;
 	    xa_end   = Astore.colend;
@@ -852,7 +934,7 @@ public class Dlu_pdmemory {
 	    }
 
 	    for (j = 0; j < n; j += w) {
-	        if ( Glu.dynamic_snode_bound == NO ) map_in_sup[j] = nextpos;
+	        if ( Glu.dynamic_snode_bound == NO.ordinal() ) map_in_sup[j] = nextpos;
 
 		if ( pxgstrf_relax[rs].fcol == j ) {
 		    /* Column j starts a relaxed supernode. */
@@ -886,7 +968,7 @@ public class Dlu_pdmemory {
 		    w = i - j;
 		} else { /* Column j starts a supernode in H */
 		    w = super_bnd[j];
-		    if ( Glu.dynamic_snode_bound == NO ) nextpos += w * colcnt[j];
+		    if ( Glu.dynamic_snode_bound == NO.ordinal() ) nextpos += w * colcnt[j];
 		}
 
 		/* Set up the offset (negative) to the leading column j of a
@@ -895,14 +977,13 @@ public class Dlu_pdmemory {
 
 	    } /* for j ... */
 
-	    if ( Glu.dynamic_snode_bound == YES ) Glu.nextlu = nextpos;
+	    if ( Glu.dynamic_snode_bound == YES.ordinal() ) Glu.nextlu = nextpos;
 	    else map_in_sup[n] = nextpos;
 
 	if ( PRNTlevel>=1 ) {
 	    printf("** PresetMap() allocates %d reals to lusup[*]....\n", nextpos);
 	}
 
-	    free (marker);
 	    return nextpos;
 	}
 
