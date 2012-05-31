@@ -296,6 +296,14 @@ public class Dlu_dsp_blas2 {
 	sp_dgemv(char trans, double alpha, SuperMatrix A, double x[],
 		 int incx, double beta, double y[], int incy)
 	{
+		return sp_dgemv(trans, alpha, A, x, 0, incx, beta, y, 0, incy);
+	}
+
+	static
+	int
+	sp_dgemv(char trans, double alpha, SuperMatrix A, double x[], int x_offset,
+		 int incx, double beta, double y[], int y_offset, int incy)
+	{
 	/*  Purpose
 	    =======
 
@@ -401,19 +409,19 @@ public class Dlu_dsp_blas2 {
 	    if (beta != 1.) {
 		if (incy == 1) {
 		    if (beta == 0.)
-			for (i = 0; i < leny; ++i) y[i] = 0.;
+			for (i = 0; i < leny; ++i) y[y_offset+i] = 0.;
 		    else
-			for (i = 0; i < leny; ++i) y[i] = beta * y[i];
+			for (i = 0; i < leny; ++i) y[y_offset+i] = beta * y[y_offset+i];
 		} else {
 		    iy = ky;
 		    if (beta == 0.)
 			for (i = 0; i < leny; ++i) {
-			    y[iy] = 0.;
+			    y[y_offset+iy] = 0.;
 			    iy += incy;
 			}
 		    else
 			for (i = 0; i < leny; ++i) {
-			    y[iy] = beta * y[iy];
+			    y[y_offset+iy] = beta * y[y_offset+iy];
 			    iy += incy;
 			}
 		}
@@ -426,11 +434,11 @@ public class Dlu_dsp_blas2 {
 		jx = kx;
 		if (incy == 1) {
 		    for (j = 0; j < A.ncol; ++j) {
-			if (x[jx] != 0.) {
-			    temp = alpha * x[jx];
+			if (x[x_offset+jx] != 0.) {
+			    temp = alpha * x[x_offset+jx];
 			    for (i = Astore.colptr[j]; i < Astore.colptr[j+1]; ++i) {
 				irow = Astore.rowind[i];
-				y[irow] += temp * Aval[i];
+				y[y_offset+irow] += temp * Aval[i];
 			    }
 			}
 			jx += incx;
@@ -446,9 +454,9 @@ public class Dlu_dsp_blas2 {
 			temp = 0.;
 			for (i = Astore.colptr[j]; i < Astore.colptr[j+1]; ++i) {
 			    irow = Astore.rowind[i];
-			    temp += Aval[i] * x[irow];
+			    temp += Aval[i] * x[x_offset+irow];
 			}
-			y[jy] += alpha * temp;
+			y[y_offset+jy] += alpha * temp;
 			jy += incy;
 		    }
 		} else {

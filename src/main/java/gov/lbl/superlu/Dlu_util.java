@@ -47,6 +47,10 @@ import static gov.lbl.superlu.Dlu_slu_mt_util.how_selected_t.DADPAN;
 import static gov.lbl.superlu.Dlu_slu_mt_util.how_selected_t.NOPIPE;
 import static gov.lbl.superlu.Dlu_slu_mt_util.how_selected_t.PIPE;
 
+import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
+import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
+import static gov.lbl.superlu.Dlu_pdmemory.doubleMalloc;
+
 
 
 
@@ -233,12 +237,11 @@ public class Dlu_util {
 	fixupL(final int n, final int perm_r[], GlobalLU_t Glu)
 	{
 	    int nsuper, fsupc, nextl, i, j, jstrt;
-	    int[] xsup, xsup_end, lsub, xlsub, xlsub_end;
+	    int[] xsup, lsub, xlsub, xlsub_end;
 
 	    if ( n <= 1 ) return;
 
 	    xsup      = Glu.xsup;
-	    xsup_end  = Glu.xsup_end;
 	    lsub      = Glu.lsub;
 	    xlsub     = Glu.xlsub;
 	    xlsub_end = Glu.xlsub_end;
@@ -366,7 +369,7 @@ public class Dlu_util {
 
 	    w = SUPERLU_MAX( panel_size, relax ) + 1;
 	    Gstat.panel_histo = intCalloc(w);
-	    Gstat.utime = (double []) doubleMalloc(NPHASES);
+	    Gstat.utime = (double []) doubleMalloc(NPHASES.ordinal());
 	    Gstat.ops   = new float[NPHASES.ordinal()];
 
 	    if ( (Gstat.procstat = new procstat_t[nprocs]) == null )
@@ -783,7 +786,7 @@ public class Dlu_util {
 	int ParallelProfile(final int n, final int supers, final int panels,
 			final int procs, Gstat_t Gstat)
 	{
-	    int i, imax, pruned, unpruned, waits, itemp, cs_numbers;
+	    int i, pruned, unpruned, waits, itemp, cs_numbers;
 	    float loadmax, loadtot, temp, thresh, loadprint;
 	    float waittime, cs_time;
 	    double    utime[] = Gstat.utime;
@@ -830,13 +833,11 @@ public class Dlu_util {
 
 	    /* work load distribution */
 	    loadmax = loadtot = Gstat.procstat[0].fcops;
-	    imax = 0;
 	    for (i = 1; i < procs; ++i) {
 		temp = Gstat.procstat[i].fcops;
 		loadtot += temp;
 		if ( temp > loadmax ) {
 		    loadmax = temp;
-		    imax = i;
 		}
 	    }
 	    printf("%25s%8.2f\n", "Load balance [mean/max]", loadtot/loadmax/procs);
@@ -941,7 +942,7 @@ public class Dlu_util {
 	CPprofile(final int n, cp_panel_t cp_panel[], pxgstrf_shared_t pxgstrf_shared)
 	{
 	    Gstat_t Gstat = pxgstrf_shared.Gstat;
-	    int maxpan, i, j, treecnt;
+	    int maxpan = 0, i, j, treecnt;
 	    float eft, maxeft; /* earliest (possible) finish time */
 	    float  ops[];
 

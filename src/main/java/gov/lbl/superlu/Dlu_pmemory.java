@@ -9,8 +9,6 @@ package gov.lbl.superlu;
 
 import static gov.lbl.superlu.Dlu_slu_mt_util.SUPERLU_ABORT;
 import static gov.lbl.superlu.Dlu_slu_mt_util.EMPTY;
-import static gov.lbl.superlu.Dlu_slu_mt_util.NO_MARKER;
-import static gov.lbl.superlu.Dlu_slu_mt_util.yes_no_t.YES;
 import static gov.lbl.superlu.Dlu_util.ifill;
 import static gov.lbl.superlu.Dlu_superlu_timer.SuperLU_timer_;
 
@@ -26,7 +24,6 @@ import gov.lbl.superlu.Dlu_slu_mt_util.MemType;
 import static gov.lbl.superlu.Dlu.PROFILE;
 import static gov.lbl.superlu.Dlu.stderr;
 import static gov.lbl.superlu.Dlu.fprintf;
-import static gov.lbl.superlu.Dlu.printf;
 import static gov.lbl.superlu.Dlu.exit;
 
 
@@ -44,18 +41,27 @@ public class Dlu_pmemory {
 	 * Set up pointers for integer working arrays.
 	 */
 	static void
-	pxgstrf_SetIWork(int n, int panel_size, int iworkptr[], int segrep[][],
+	pxgstrf_SetIWork(int n, int panel_size, /*int iworkptr[], */int segrep[][],
 			 int parent[][], int xplore[][], int repfnz[][], int panel_lsub[][],
 			 int marker[][], int lbusy[][])
 	{
-	    segrep[0] = iworkptr;                                      /* n  */
-	    parent[0] = iworkptr + n;                                  /* n  */
-	    xplore[0] = iworkptr + 2*n;                                /* 2*n */
-	    repfnz[0] = iworkptr + 4*n;                                /* w*n */
-	    panel_lsub[0] = iworkptr + 4*n + panel_size*n;             /* w*n */
-	    marker[0] = iworkptr + 4*n + 2*panel_size*n;               /* 3*n */
-	    lbusy[0]  = iworkptr + (4+NO_MARKER)*n + 2*panel_size*n;   /* n   */
+	    segrep[0] = new int[n];                   /* n  */
+	    parent[0] = new int[n];                   /* n  */
+	    xplore[0] = new int[2*n];                 /* 2*n */
+	    repfnz[0] = new int[panel_size*n];        /* w*n */
+	    panel_lsub[0] = new int[panel_size*n];    /* w*n */
+	    marker[0] = new int[3*n];                 /* 3*n */
+	    lbusy[0]  = new int[n];                   /* n   */
 	    ifill (repfnz[0], n * panel_size, EMPTY);
+
+//	    segrep[0] = iworkptr;                                      /* n  */
+//	    parent[0] = iworkptr + n;                                  /* n  */
+//	    xplore[0] = iworkptr + 2*n;                                /* 2*n */
+//	    repfnz[0] = iworkptr + 4*n;                                /* w*n */
+//	    panel_lsub[0] = iworkptr + 4*n + panel_size*n;             /* w*n */
+//	    marker[0] = iworkptr + 4*n + 2*panel_size*n;               /* 3*n */
+//	    lbusy[0]  = iworkptr + (4+NO_MARKER)*n + 2*panel_size*n;   /* n   */
+//	    ifill (repfnz[0], n * panel_size, EMPTY);
 	}
 
 
@@ -74,34 +80,35 @@ public class Dlu_pmemory {
 	void
 	user_bcopy(char src[], char dest[], int bytes)
 	{
-	    char s_ptr[], d_ptr[];
-
-	    s_ptr = src + bytes - 1;
-	    d_ptr = dest + bytes - 1;
-	    for (; d_ptr >= dest; --s_ptr, --d_ptr ) *d_ptr = *s_ptr;
+		System.arraycopy(src, 0, dest, 0, bytes);
+//	    char s_ptr[], d_ptr[];
+//
+//	    s_ptr = src + bytes - 1;
+//	    d_ptr = dest + bytes - 1;
+//	    for (; d_ptr >= dest; --s_ptr, --d_ptr ) *d_ptr = *s_ptr;
 	}
 
 
 
+	@SuppressWarnings("unused")
 	static
 	int[] intMalloc(int n)
 	{
 	    int buf[];
-	    buf = new int [n];
-	    if ( buf == null ) {
+	    if ( (buf = new int [n]) == null ) {
 		fprintf(stderr, "SUPERLU_MALLOC failed for buf in intMalloc()\n");
 		exit (1);
 	    }
 	    return (buf);
 	}
 
+	@SuppressWarnings("unused")
 	static
 	int[] intCalloc(int n)
 	{
 	    int buf[];
 	    int i;
-	    buf = new int [n];
-	    if ( buf == null ) {
+	    if ( (buf = new int [n]) == null ) {
 		fprintf(stderr, "SUPERLU_MALLOC failed for buf in intCalloc()\n");
 		exit (1);
 	    }
@@ -130,7 +137,7 @@ public class Dlu_pmemory {
 	    GlobalLU_t Glu = pxgstrf_shared.Glu;
 	    Gstat_t    Gstat = pxgstrf_shared.Gstat;
 	    int fsupc, nextl, nextu, new_next;
-	    double   t;
+	    double   t = 0;
 
 	    switch ( mem_type ) {
 
@@ -143,8 +150,8 @@ public class Dlu_pmemory {
 		prev_next[0] = Glu.map_in_sup[fsupc];
 		Glu.map_in_sup[fsupc] += num;
 
-	if (false) {
-		{
+//	if (false) {
+//		{
 //		    int i, j;
 //		    i = fsupc + part_super_h[fsupc];
 //		    if ( Glu.dynamic_snode_bound == YES.ordinal() )
@@ -167,8 +174,8 @@ public class Dlu_pmemory {
 //				   pnum, j, part_super_h[j]);
 //			SUPERLU_ABORT("LUSUP exceeded.");  /* xiaoye */
 //		    }
-		}
-	}
+//		}
+//	}
 		break;
 
 
@@ -178,7 +185,7 @@ public class Dlu_pmemory {
 		t = SuperLU_timer_();
 	}
 
-		pthread_mutex_lock( pxgstrf_shared.lu_locks[ULOCK.ordinal()] );
+		synchronized ( pxgstrf_shared.lu_locks[ULOCK.ordinal()] )
 		{
 		    nextu = Glu.nextu;
 		    new_next = nextu + num;
@@ -189,8 +196,6 @@ public class Dlu_pmemory {
 		    Glu.nextu = new_next;
 
 		} /* end of critical region */
-
-		pthread_mutex_unlock( pxgstrf_shared.lu_locks[ULOCK.ordinal()] );
 
 	if (PROFILE) {
 		Gstat.procstat[pnum].cs_time += SuperLU_timer_() - t;
@@ -205,7 +210,7 @@ public class Dlu_pmemory {
 		t = SuperLU_timer_();
 	}
 
-		pthread_mutex_lock( pxgstrf_shared.lu_locks[LLOCK.ordinal()] );
+	    synchronized( pxgstrf_shared.lu_locks[LLOCK.ordinal()] )
 		{
 		  nextl = Glu.nextl;
 		  new_next = nextl + num;
@@ -216,8 +221,6 @@ public class Dlu_pmemory {
 		  Glu.nextl = new_next;
 
 		} /* end of #pragama critical lock() */
-
-		pthread_mutex_unlock( pxgstrf_shared.lu_locks[LLOCK.ordinal()]);
 
 	if (PROFILE) {
 		Gstat.procstat[pnum].cs_time += SuperLU_timer_() - t;
@@ -243,7 +246,7 @@ public class Dlu_pmemory {
 		      pxgstrf_shared_t pxgstrf_shared
 		      )
 	{
-		double t;
+		double t = 0;
 	    GlobalLU_t Glu = pxgstrf_shared.Glu;
 	    Gstat_t    Gstat = pxgstrf_shared.Gstat;
 	    int nextlu, new_next;
@@ -253,7 +256,7 @@ public class Dlu_pmemory {
 	    t = SuperLU_timer_();
 	}
 
-	    pthread_mutex_lock( pxgstrf_shared.lu_locks[LULOCK.ordinal()] );
+		synchronized ( pxgstrf_shared.lu_locks[LULOCK.ordinal()] )
 	    {
 		nextlu = Glu.nextlu;
 		map_in_sup[jcol] = nextlu;
@@ -263,8 +266,6 @@ public class Dlu_pmemory {
 		}
 		Glu.nextlu = new_next;
 	    } /* end of critical region */
-
-	    pthread_mutex_unlock( pxgstrf_shared.lu_locks[LULOCK.ordinal()] );
 
 	if (PROFILE) {
 	    Gstat.procstat[pnum].cs_time += SuperLU_timer_() - t;

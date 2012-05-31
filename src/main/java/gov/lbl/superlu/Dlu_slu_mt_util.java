@@ -7,10 +7,13 @@
  */
 package gov.lbl.superlu;
 
-import static gov.lbl.superlu.Dlu.PROFILE;
-import static gov.lbl.superlu.Dlu_superlu_timer.SuperLU_timer_;
+import gov.lbl.superlu.Dlu_pdsp_defs.pxgstrf_shared_t;
 import gov.lbl.superlu.Dlu_supermatrix.NCPformat;
 import gov.lbl.superlu.Dlu_supermatrix.SCPformat;
+
+import static gov.lbl.superlu.Dlu.PROFILE;
+import static gov.lbl.superlu.Dlu_superlu_timer.SuperLU_timer_;
+import static gov.lbl.superlu.Dlu_util.superlu_abort_and_exit;
 
 
 
@@ -114,10 +117,10 @@ public class Dlu_slu_mt_util {
 	static int ISPRUNED(int[] ispruned, int j) {
 		return ispruned[j];
 	}
-	static int STATE(int j) {
-		return pxgstrf_shared.pan_status[j].state;
+	static int STATE(pxgstrf_shared_t pxgstrf_shared, int j) {
+		return pxgstrf_shared.pan_status[j].state.ordinal();
 	}
-	static int DADPANEL(int j) {
+	static int DADPANEL(int[] etree, pxgstrf_shared_t pxgstrf_shared, int j) {
 		return etree[j + pxgstrf_shared.pan_status[j].size-1];
 	}
 
@@ -161,13 +164,6 @@ public class Dlu_slu_mt_util {
 	static final int BADCOL =   35;
 	static final int BADPAN =   BADCOL;
 	static final int BADREP =   35;
-
-	/*
-	 * Type definitions
-	 */
-//	typedef float    float;
-//	typedef unsigned char Logical;
-
 
 	enum PhaseType {
 	    RELAX,

@@ -23,6 +23,9 @@ import static gov.lbl.superlu.Dlu_pxgstrf_relax_snode.pxgstrf_relax_snode;
 
 import static gov.lbl.superlu.Dlu_pxgstrf_synch.ParallelInit;
 
+import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
+import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
+
 
 public class Dlu_pdgstrf_thread_init {
 

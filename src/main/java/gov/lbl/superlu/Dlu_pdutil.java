@@ -33,15 +33,17 @@ import static gov.lbl.superlu.Dlu_slu_mt_util.PhaseType.ETREE;
 import static gov.lbl.superlu.Dlu_slu_mt_util.PhaseType.EQUIL;
 import static gov.lbl.superlu.Dlu_slu_mt_util.PhaseType.RCOND;
 import static gov.lbl.superlu.Dlu_slu_mt_util.PhaseType.REFINE;
-import static gov.lbl.superlu.Dlu_slu_mt_util.PhaseType.TRSV;
-import static gov.lbl.superlu.Dlu_slu_mt_util.PhaseType.GEMV;
-import static gov.lbl.superlu.Dlu_slu_mt_util.PhaseType.FLOAT;
-import static gov.lbl.superlu.Dlu_slu_mt_util.PhaseType.FERR;
 
 import static gov.lbl.superlu.Dlu.printf;
 import static gov.lbl.superlu.Dlu.fflush;
 import static gov.lbl.superlu.Dlu.stdout;
 import static gov.lbl.superlu.Dlu.fabs;
+
+import static gov.lbl.superlu.Dlu_pdmemory.doubleMalloc;
+import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
+import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
+
+import static gov.lbl.superlu.Dlu_dsp_blas3.sp_dgemm;
 
 
 public class Dlu_pdutil {
@@ -274,7 +276,7 @@ public class Dlu_pdutil {
 	    L.nrow = m;
 	    L.ncol = n;
 	    L.Store = new SCPformat();
-	    Lstore = L.Store;
+	    Lstore = (SCPformat) L.Store;
 	    Lstore.nnz = nnz;
 	    Lstore.nsuper = col_to_sup[n];
 	    Lstore.nzval = nzval;
@@ -377,8 +379,6 @@ public class Dlu_pdutil {
 	void
 	dFillRHS(trans_t trans, int nrhs, double x[], int ldx, SuperMatrix A, SuperMatrix B)
 	{
-	    NCformat Astore;
-	    double   Aval[];
 	    DNformat Bstore;
 	    double   rhs[];
 	    double one = 1.0;
@@ -386,8 +386,6 @@ public class Dlu_pdutil {
 	    int      ldc;
 	    char     trans_c;
 
-	    Astore = (NCformat) A.Store;
-	    Aval   = (double []) Astore.nzval;
 	    Bstore = (DNformat) B.Store;
 	    rhs    = Bstore.nzval;
 	    ldc    = Bstore.lda;
@@ -421,17 +419,19 @@ public class Dlu_pdutil {
 	    DNformat Xstore;
 	    double err, xnorm;
 	    double Xmat[], soln_work[];
+	    int soln_work_offset;
 	    int i, j;
 
 	    Xstore = (DNformat) X.Store;
 	    Xmat = Xstore.nzval;
 
 	    for (j = 0; j < nrhs; j++) {
-	      soln_work = &Xmat[j*Xstore.lda];
+	      soln_work = Xmat;
+	      soln_work_offset = j*Xstore.lda;
 	      err = xnorm = 0.0;
 	      for (i = 0; i < X.nrow; i++) {
-	        err = SUPERLU_MAX(err, fabs(soln_work[i] - xtrue[i]));
-	        xnorm = SUPERLU_MAX(xnorm, fabs(soln_work[i]));
+	        err = SUPERLU_MAX(err, fabs(soln_work[soln_work_offset + i] - xtrue[i]));
+	        xnorm = SUPERLU_MAX(xnorm, fabs(soln_work[soln_work_offset + i]));
 	      }
 	      err = err / xnorm;
 	      printf("||X - Xtrue||/||X|| = %e\n", err);

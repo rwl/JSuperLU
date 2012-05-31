@@ -59,7 +59,7 @@ public class Dlu_pdgstrf_thread {
 
 	static
 	Object[]
-	pdgstrf_thread(Object arg[])
+	pdgstrf_thread(pdgstrf_threadarg_t arg)
 	{
 	/*
 	 * -- SuperLU MT routine (version 2.0) --

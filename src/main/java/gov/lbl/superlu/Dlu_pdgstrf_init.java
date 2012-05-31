@@ -15,8 +15,6 @@ import static gov.lbl.superlu.Dlu_sp_colorder.sp_colorder;
 import static gov.lbl.superlu.Dlu_superlu_timer.SuperLU_timer_;
 
 
-
-
 public class Dlu_pdgstrf_init {
 
 	static

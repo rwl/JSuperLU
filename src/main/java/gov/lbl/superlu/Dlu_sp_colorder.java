@@ -1,14 +1,13 @@
 package gov.lbl.superlu;
 
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+
 import gov.lbl.superlu.Dlu_slu_mt_util.superlumt_options_t;
 import gov.lbl.superlu.Dlu_slu_mt_util.yes_no_t;
 import gov.lbl.superlu.Dlu_supermatrix.NCPformat;
 import gov.lbl.superlu.Dlu_supermatrix.NCformat;
 import gov.lbl.superlu.Dlu_supermatrix.SuperMatrix;
-
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-
 
 import static gov.lbl.superlu.Dlu.CHK_COLORDER;
 import static gov.lbl.superlu.Dlu.ZFD_PERM;
@@ -24,14 +23,13 @@ import static gov.lbl.superlu.Dlu_sp_coletree.sp_coletree;
 import static gov.lbl.superlu.Dlu_supermatrix.Stype_t.SLU_NCP;
 import static gov.lbl.superlu.Dlu_util.print_int_vec;
 
-
-
-
-
+import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
+import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
 
 
 public class Dlu_sp_colorder {
 
+	@SuppressWarnings("unused")
 	static
 	void
 	sp_colorder(SuperMatrix A, int perm_c[], superlumt_options_t options,

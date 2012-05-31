@@ -10,9 +10,11 @@
 package gov.lbl.superlu;
 
 import gov.lbl.superlu.Dlu_pxgstrf_synch.pan_status_t;
+import gov.lbl.superlu.Dlu_pxgstrf_synch.queue_t;
 import gov.lbl.superlu.Dlu_slu_mt_util.Gstat_t;
 import gov.lbl.superlu.Dlu_slu_mt_util.superlumt_options_t;
 import gov.lbl.superlu.Dlu_supermatrix.SuperMatrix;
+
 
 public class Dlu_pdsp_defs {
 
@@ -159,7 +161,7 @@ public class Dlu_pdsp_defs {
 	    volatile int tasks_remain; /* number of untaken panels */
 	    int          num_splits;   /* number of panels split at the top */
 	    queue_t      taskq;        /* size ncol - shared work queue */
-	    mutex_t      lu_locks[];    /* 5 named mutual exclusive locks */
+	    Object       lu_locks[];    /* 5 named mutual exclusive locks */
 	    volatile int spin_locks[];  /* size ncol - mark every busy column */
 	    pan_status_t pan_status[];  /* size ncol - panel status */
 	    int          fb_cols[];     /* size ncol - mark farthest busy column */

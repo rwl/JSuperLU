@@ -7,6 +7,7 @@ import gov.lbl.superlu.Dlu_slu_mt_util.superlumt_options_t;
 import gov.lbl.superlu.Dlu_supermatrix.SuperMatrix;
 
 import static gov.lbl.superlu.Dlu_slu_mt_util.SUPERLU_ABORT;
+import static gov.lbl.superlu.Dlu_slu_mt_util.PhaseType.FACT;
 
 import static gov.lbl.superlu.Dlu.printf;
 import static gov.lbl.superlu.Dlu.fprintf;
@@ -18,6 +19,8 @@ import static gov.lbl.superlu.Dlu_superlu_timer.usertimer_;
 
 import static gov.lbl.superlu.Dlu_pdgstrf_thread_init.pdgstrf_thread_init;
 import static gov.lbl.superlu.Dlu_pdgstrf_thread_finalize.pdgstrf_thread_finalize;
+
+import static gov.lbl.superlu.Dlu_pdgstrf_thread.pdgstrf_thread;
 
 
 public class Dlu_pdgstrf {
@@ -154,13 +157,13 @@ public class Dlu_pdgstrf {
 	 *
 	 */
 	    pdgstrf_threadarg_t pdgstrf_threadarg[];
-	    pxgstrf_shared_t pxgstrf_shared;
+	    pxgstrf_shared_t pxgstrf_shared = new pxgstrf_shared_t();
 	    int nprocs = superlumt_options.nprocs;
-	    int i, iinfo;
+	    int i;
+		int iinfo;
 	    double    utime[] = Gstat.utime;
 	    double    usrtime, wtime;
-	    double    usertimer_();
-	    pthread_t thread_id[];
+	    Thread thread_id[];
 	    Object      status[];
 //	    void      *pdgstrf_thread(void *);
 
@@ -169,7 +172,7 @@ public class Dlu_pdgstrf {
 	       Initializes the parallel data structures for pdgstrf_thread().
 	       --------------------------------------------------------------*/
 	    pdgstrf_threadarg = pdgstrf_thread_init(A, L, U, superlumt_options,
-						    &pxgstrf_shared, Gstat, info);
+						    pxgstrf_shared, Gstat, info);
 	    if ( info[0] != 0 ) return;
 
 	    /* Start timing factorization. */
@@ -182,22 +185,29 @@ public class Dlu_pdgstrf {
 	if ( true )	{  /* Use pthread ... */
 
 	    /* Create nproc threads for concurrent factorization. */
-	    thread_id = new pthread_t [nprocs];
+	    thread_id = new Thread [nprocs];
 
-	    for (i = 0; i < nprocs; ++i) {
-		if ( iinfo = pthread_create(&thread_id[i],
-					    null,
-					    pdgstrf_thread,
-					    &(pdgstrf_threadarg[i])) ) {
-		    fprintf(stderr, "pthread_create: %d\n", iinfo);
-		    SUPERLU_ABORT("pthread_create()");
+	    for (final pdgstrf_threadarg_t arg : pdgstrf_threadarg) {
+	    	new Thread(new Runnable() {
+				public void run() {
+					pdgstrf_thread(arg);
+				}
+			}).start();
 		}
-	    }
 
-	    /* Wait for all threads to terminate. */
-	    for (i = 0; i < nprocs; i++)
-		pthread_join(thread_id[i], &status);
-	    SUPERLU_FREE (thread_id);
+//	    for (i = 0; i < nprocs; ++i) {
+//		if ( iinfo = pthread_create(&thread_id[i],
+//					    null,
+//					    pdgstrf_thread,
+//					    &(pdgstrf_threadarg[i])) ) {
+//		    fprintf(stderr, "pthread_create: %d\n", iinfo);
+//		    SUPERLU_ABORT("pthread_create()");
+//		}
+//	    }
+//
+//	    /* Wait for all threads to terminate. */
+//	    for (i = 0; i < nprocs; i++)
+//		pthread_join(thread_id[i], &status);
 	/* _PTHREAD */
 
 	    /* ------------------------------------------------------------
@@ -207,13 +217,13 @@ public class Dlu_pdgstrf {
 
 	    printf("pdgstrf() is not parallelized on this machine.\n");
 	    printf("pdgstrf() will be run on single processor.\n");
-	    pdgstrf_thread( &(pdgstrf_threadarg[0]) );
+	    pdgstrf_thread( pdgstrf_threadarg[0] );
 
 	}
 
 	    wtime = SuperLU_timer_() - wtime;
 	    usrtime = usertimer_() - usrtime;
-	    utime[FACT] = wtime;
+	    utime[FACT.ordinal()] = wtime;
 
 	if ( PRNTlevel==1 ) {
 	    printf(".. pdgstrf_thread() returns info %d, usrtime %.2f, wtime %.2f\n",
@@ -225,7 +235,7 @@ public class Dlu_pdgstrf {
 	    /* ------------------------------------------------------------
 	       Clean up and free storage after multithreaded factorization.
 	       ------------------------------------------------------------*/
-	    pdgstrf_thread_finalize(pdgstrf_threadarg, &pxgstrf_shared,
+	    pdgstrf_thread_finalize(pdgstrf_threadarg, pxgstrf_shared,
 				    A, perm_r, L, U);
 
 	}
