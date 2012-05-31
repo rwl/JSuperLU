@@ -173,14 +173,14 @@ public class Dlu_pdgssv {
 	    NCformat Astore;
 	    DNformat Bstore;
 	    SuperMatrix AA = null; /* A in NC format used by the factorization routine.*/
-	    SuperMatrix AC = null; /* Matrix postmultiplied by Pc */
+	    SuperMatrix AC = new SuperMatrix(); /* Matrix postmultiplied by Pc */
 	    int i, n, panel_size, relax;
 	    fact_t   fact;
 	    yes_no_t refact, usepr;
 	    double diag_pivot_thresh, drop_tol;
 	    double work[];
 	    int lwork;
-	    superlumt_options_t superlumt_options = null;
+	    superlumt_options_t superlumt_options = new superlumt_options_t();
 	    Gstat_t  Gstat = new Gstat_t();
 	    double   t; /* Temporary time */
 	    double   utime[];
