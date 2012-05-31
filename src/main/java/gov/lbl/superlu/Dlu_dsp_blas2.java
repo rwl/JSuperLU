@@ -50,6 +50,14 @@ public class Dlu_dsp_blas2 {
 	sp_dtrsv(char uplo, char trans, char diag, SuperMatrix L,
 	         SuperMatrix U, double x[], int[] info)
 	{
+		return sp_dtrsv(uplo, trans, diag, L, U, x, 0, info);
+	}
+
+	static
+	int
+	sp_dtrsv(char uplo, char trans, char diag, SuperMatrix L,
+	         SuperMatrix U, double x[], int x_offset, int[] info)
+	{
 	/*
 	 *   Purpose
 	 *   =======
@@ -156,27 +164,27 @@ public class Dlu_dsp_blas2 {
 			    for (iptr=istart+1; iptr < L_SUB_END(Lstore, fsupc); ++iptr) {
 				irow = L_SUB(Lstore, iptr);
 				++luptr;
-				x[irow] -= x[fsupc] * Lval[luptr];
+				x[x_offset+irow] -= x[x_offset+fsupc] * Lval[luptr];
 			    }
 			} else {
 	if (USE_VENDOR_BLAS) {
 				BLAS blas = BLAS.getInstance();
 			    blas.dtrsv("L", "N", "U", &nsupc, &Lval[luptr], &nsupr,
-			       	&x[fsupc], &incx);
+			       	&x[x_offset+fsupc], &incx);
 
 			    blas.dgemv("N", &nrow, &nsupc, &alpha, &Lval[luptr+nsupc],
-			       	&nsupr, &x[fsupc], &incx, &beta, &work[0], &incy);
+			       	&nsupr, &x[x_offset+fsupc], &incx, &beta, &work[0], &incy);
 	} else {
-			    dlsolve (nsupr, nsupc, &Lval[luptr], &x[fsupc]);
+			    dlsolve (nsupr, nsupc, &Lval[luptr], &x[x_offset+fsupc]);
 
 			    dmatvec (nsupr, nsupr-nsupc, nsupc, &Lval[luptr+nsupc],
-	                             &x[fsupc], &work[0] );
+	                             &x[x_offset+fsupc], &work[0] );
 	}
 
 			    iptr = istart + nsupc;
 			    for (i = 0; i < nrow; ++i, ++iptr) {
 				irow = L_SUB(Lstore, iptr);
-				x[irow] -= work[i];	/* Scatter */
+				x[x_offset+irow] -= work[i];	/* Scatter */
 				work[i] = 0.0;
 
 			    }
@@ -197,25 +205,25 @@ public class Dlu_dsp_blas2 {
 	    	        solve_ops += nsupc * (nsupc + 1);
 
 			if ( nsupc == 1 ) {
-			    x[fsupc] /= Lval[luptr];
+			    x[x_offset+fsupc] /= Lval[luptr];
 			    for (i = U_NZ_START(Ustore, fsupc); i < U_NZ_END(Ustore, fsupc); ++i) {
 				irow = U_SUB(Ustore, i);
-				x[irow] -= x[fsupc] * Uval[i];
+				x[x_offset+irow] -= x[x_offset+fsupc] * Uval[i];
 			    }
 			} else {
 	if (USE_VENDOR_BLAS) {
 				BLAS blas = BLAS.getInstance();
 			    blas.dtrsv("U", "N", "N", &nsupc, &Lval[luptr], &nsupr,
-	                           &x[fsupc], &incx);
+	                           &x[x_offset+fsupc], &incx);
 	} else {
-			    dusolve ( nsupr, nsupc, &Lval[luptr], &x[fsupc] );
+			    dusolve ( nsupr, nsupc, &Lval[luptr], &x[x_offset+fsupc] );
 	}
 
 	                    for (jcol = fsupc; jcol < fsupc + nsupc; jcol++) {
 			        solve_ops += 2*(U_NZ_END(Ustore, jcol) - U_NZ_START(Ustore, jcol));
 			    	for (i = U_NZ_START(Ustore, jcol); i < U_NZ_END(Ustore, jcol); i++) {
 				    irow = U_SUB(Ustore, i);
-				    x[irow] -= x[jcol] * Uval[i];
+				    x[x_offset+irow] -= x[x_offset+jcol] * Uval[i];
 			    	}
 	                    }
 			}
@@ -242,7 +250,7 @@ public class Dlu_dsp_blas2 {
 			    for (i = L_NZ_START(Lstore, jcol) + nsupc;
 					i < L_NZ_END(Lstore, jcol); i++) {
 				irow = L_SUB(Lstore, iptr);
-				x[jcol] -= x[irow] * Lval[i];
+				x[x_offset+jcol] -= x[x_offset+irow] * Lval[i];
 				iptr++;
 			    }
 			}
@@ -252,7 +260,7 @@ public class Dlu_dsp_blas2 {
 
 			    BLAS blas = BLAS.getInstance();
 			    blas.dtrsv("L", "T", "U", &nsupc, &Lval[luptr], &nsupr,
-				&x[fsupc], &incx);
+				&x[x_offset+fsupc], &incx);
 			}
 		    }
 		} else {
@@ -269,18 +277,18 @@ public class Dlu_dsp_blas2 {
 			    solve_ops += 2*(U_NZ_END(Ustore, jcol) - U_NZ_START(Ustore, jcol));
 			    for (i = U_NZ_START(Ustore, jcol); i < U_NZ_END(Ustore, jcol); i++) {
 				irow = U_SUB(Ustore, i);
-				x[jcol] -= x[irow] * Uval[i];
+				x[x_offset+jcol] -= x[x_offset+irow] * Uval[i];
 			    }
 			}
 
 			solve_ops += nsupc * (nsupc + 1);
 
 			if ( nsupc == 1 ) {
-			    x[fsupc] /= Lval[luptr];
+			    x[x_offset+fsupc] /= Lval[luptr];
 			} else {
 				BLAS blas = BLAS.getInstance();
 			    blas.dtrsv("U", "T", "N", &nsupc, &Lval[luptr], &nsupr,
-				    &x[fsupc], &incx);
+				    &x[x_offset+fsupc], &incx);
 			}
 		    } /* for k ... */
 		}

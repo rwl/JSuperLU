@@ -3,7 +3,6 @@ package gov.lbl.superlu;
 import gov.lbl.superlu.Dlu_pdsp_defs.GlobalLU_t;
 import gov.lbl.superlu.Dlu_pdsp_defs.pdgstrf_threadarg_t;
 import gov.lbl.superlu.Dlu_pdsp_defs.pxgstrf_shared_t;
-import gov.lbl.superlu.Dlu_slu_mt_util.ExpHeader;
 import gov.lbl.superlu.Dlu_slu_mt_util.superlumt_options_t;
 import gov.lbl.superlu.Dlu_supermatrix.NCPformat;
 import gov.lbl.superlu.Dlu_supermatrix.SCPformat;
@@ -33,6 +32,7 @@ import static gov.lbl.superlu.Dlu.printf;
 import static gov.lbl.superlu.Dlu.DEBUGlevel;
 
 import static gov.lbl.superlu.Dlu_pxgstrf_synch.ParallelFinalize;
+import static gov.lbl.superlu.Dlu_pxgstrf_synch.QueryQueue;
 
 
 public class Dlu_pdgstrf_thread_finalize {
@@ -97,10 +97,9 @@ public class Dlu_pdgstrf_thread_finalize {
 	    nnzU = new int[1];
 	    superlumt_options_t superlumt_options;
 	    GlobalLU_t Glu;
-	    ExpHeader dexpanders;
 
 	    n = A.ncol;
-	    superlumt_options = pdgstrf_threadarg.superlumt_options;
+	    superlumt_options = pdgstrf_threadarg[0].superlumt_options;
 	    Glu = pxgstrf_shared.Glu;
 	    Glu.supno[n] = Glu.nsuper;
 
@@ -132,16 +131,16 @@ public class Dlu_pdgstrf_thread_finalize {
 	    iinfo = 0;
 	    nprocs = superlumt_options.nprocs;
 	    for (i = 0; i < nprocs; ++i) {
-	        if ( pdgstrf_threadarg[i].info ) {
+	        if ( pdgstrf_threadarg[i].info != 0 ) {
 		    if (iinfo != 0) iinfo=SUPERLU_MIN(iinfo, pdgstrf_threadarg[i].info);
 		    else iinfo = pdgstrf_threadarg[i].info;
 		}
 	    }
-	    *pxgstrf_shared.info = iinfo;
+	    pxgstrf_shared.info = iinfo;
 
 	if ( DEBUGlevel>=2 ) {
 	    printf("Last nsuper %d\n", Glu.nsuper);
-	    QueryQueue(&pxgstrf_shared.taskq);
+	    QueryQueue(pxgstrf_shared.taskq);
 	    PrintGLGU(n, pxgstrf_shared.xprune, Glu);
 	    PrintInt10("perm_r", n, perm_r);
 	    PrintInt10("inv_perm_r", n, pxgstrf_shared.inv_perm_r);
@@ -154,7 +153,6 @@ public class Dlu_pdgstrf_thread_finalize {
 	    pxgstrf_shared.inv_perm_c = null;
 	    pxgstrf_shared.xprune = null;
 	    pxgstrf_shared.ispruned = null;
-	    dexpanders = null;
 
 	if ( DEBUGlevel>=1 ) {
 	    printf("** pdgstrf_thread_finalize() called\n");

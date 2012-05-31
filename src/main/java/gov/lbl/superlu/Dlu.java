@@ -2,6 +2,8 @@ package gov.lbl.superlu;
 
 import java.io.PrintStream;
 
+import org.netlib.blas.BLAS;
+
 public class Dlu {
 
 	public static final PrintStream stdout = System.out;
@@ -62,6 +64,54 @@ public class Dlu {
 		for (int i = 0; i < d.length; i++)
 			iarray[i] = (int) d[i];
 		return iarray;
+	}
+
+	public static void dtrsm(String side, String uplo, String transa, String diag,
+			int m, int n, double alpha, double[] a, int a_offset, int lda,
+			double[] b, int b_offset, int ldb) {
+
+		BLAS blas = BLAS.getInstance();
+
+		int k;
+		double[] A, B;
+
+		k = side.equalsIgnoreCase("L") ? m : n;
+
+		A = new double[lda*k];
+		System.arraycopy(a, a_offset, A, 0, lda*k);
+
+		B = new double[ldb*n];
+		System.arraycopy(b, b_offset, B, 0, ldb*n);
+
+ 		blas.dtrsm(side, uplo, transa, diag, m, n, alpha,
+		       A, lda, B, ldb);
+
+ 		System.arraycopy(B, 0, b, b_offset, ldb*n);
+
+	}
+
+	public static void dgemm(String transa, String transb, int m, int n,
+			int k, double alpha, double[] a, int a_offset, int lda,
+			double[] b, int b_offset, int ldb, double beta, double[] c,
+			int Ldc) {
+
+		BLAS blas = BLAS.getInstance();
+
+		int ka, kb;
+		double[] A, B;
+
+		ka = transa.equalsIgnoreCase("N") ? k : m;
+		kb = transb.equalsIgnoreCase("N") ? n : k;
+
+ 		A = new double[lda*ka];
+ 		System.arraycopy(a, a_offset, A, 0, lda*ka);
+
+ 		B = new double[ldb*kb];
+ 		System.arraycopy(b, b_offset, B, 0, ldb*kb);
+
+		blas.dgemm( "N", "N", m, n, k, alpha,
+			A, lda, B, ldb, beta, c, Ldc );
+
 	}
 
 }

@@ -32,6 +32,8 @@ import static gov.lbl.superlu.Dlu_pdmemory.doubleMalloc;
 import static gov.lbl.superlu.Dlu.USE_VENDOR_BLAS;
 import static gov.lbl.superlu.Dlu.DEBUGlevel;
 import static gov.lbl.superlu.Dlu.printf;
+import static gov.lbl.superlu.Dlu.dtrsm;
+import static gov.lbl.superlu.Dlu.dgemm;
 
 import static gov.lbl.superlu.Dlu_dmyblas2.dlsolve;
 import static gov.lbl.superlu.Dlu_dmyblas2.dmatvec;
@@ -150,9 +152,10 @@ public class Dlu_dgstrs {
 	    if ( trans == NOTRANS ) {
 		/* Permute right hand sides to form Pr*B */
 		for (i = 0, bptr = 0; i < nrhs; i++, bptr += ldb) {
-		    rhs_work = &Bmat[bptr];
-		    for (k = 0; k < n; k++) soln[perm_r[k]] = rhs_work[k];
-		    for (k = 0; k < n; k++) rhs_work[k] = soln[k];
+		    rhs_work = Bmat;
+		    int rhs_work_offset = bptr;
+		    for (k = 0; k < n; k++) soln[perm_r[k]] = rhs_work[rhs_work_offset+k];
+		    for (k = 0; k < n; k++) rhs_work[rhs_work_offset+k] = soln[k];
 		}
 
 		/* Forward solve PLy=Pb. */
@@ -171,48 +174,51 @@ public class Dlu_dgstrs {
 
 		    if ( nsupc == 1 ) {
 			for (j = 0, bptr = 0; j < nrhs; j++, bptr += ldb) {
-			    rhs_work = &Bmat[bptr];
-		    	    luptr = L_NZ_START(Lstore, fsupc);
+			    rhs_work = Bmat;
+			    int rhs_work_offset = bptr;
+		    	luptr = L_NZ_START(Lstore, fsupc);
 			    for (iptr=istart+1; iptr < L_SUB_END(Lstore, fsupc); iptr++){
 				irow = L_SUB(Lstore, iptr);
 				++luptr;
-	                        rhs_work[irow] -= rhs_work[fsupc] * Lval[luptr];
+	            rhs_work[rhs_work_offset+irow] -= rhs_work[rhs_work_offset+fsupc] * Lval[luptr];
 			    }
 			}
 		    } else {
 		    	luptr = L_NZ_START(Lstore, fsupc);
 	if (USE_VENDOR_BLAS) {
-			BLAS blas = BLAS.getInstance();
-	 		blas.dtrsm("L", "L", "N", "U", &nsupc, &nrhs, &alpha,
-			       &Lval[luptr], &nsupr, &Bmat[fsupc], &ldb);
 
-			blas.dgemm( "N", "N", &nrow, &nrhs, &nsupc, &alpha,
-				&Lval[luptr+nsupc], &nsupr, &Bmat[fsupc], &ldb,
-				&beta, &work[0], &n );
+	 		dtrsm("L", "L", "N", "U", nsupc, nrhs, alpha,
+			       Lval, luptr, nsupr, Bmat, fsupc, ldb);
+
+			dgemm("N", "N", nrow, nrhs, nsupc, alpha,
+				Lval, luptr+nsupc, nsupr, Bmat, fsupc, ldb, beta, work, n);
 
 			for (j = 0, bptr = 0; j < nrhs; j++, bptr += ldb) {
-			    rhs_work = &Bmat[bptr];
-			    work_col = &work[j*n];
+			    rhs_work = Bmat;
+			    int rhs_work_offset = bptr;
+			    work_col = work;
+			    int work_col_offset = j*n;
 			    iptr = istart + nsupc;
 			    for (i = 0; i < nrow; i++) {
 				irow = L_SUB(Lstore, iptr);
-	                        rhs_work[irow] -= work_col[i]; /* Scatter */
-	                        work_col[i] = 0.0;
+                rhs_work[rhs_work_offset+irow] -= work_col[work_col_offset+i]; /* Scatter */
+                work_col[work_col_offset+i] = 0.0;
 				iptr++;
 			    }
 			}
 	} else {
 			for (j = 0, bptr = 0; j < nrhs; j++, bptr += ldb) {
-			    rhs_work = &Bmat[bptr];
-			    dlsolve (nsupr, nsupc, &Lval[luptr], &rhs_work[fsupc]);
+			    rhs_work = Bmat;
+			    int rhs_work_offset = bptr;
+			    dlsolve (nsupr, nsupc, &Lval[luptr], &rhs_work[rhs_work_offset+fsupc]);
 			    dmatvec (nsupr, nrow, nsupc, &Lval[luptr+nsupc],
-				     &rhs_work[fsupc], &work[0] );
+				     &rhs_work[rhs_work_offset+fsupc], &work[0] );
 
 			    iptr = istart + nsupc;
 			    for (i = 0; i < nrow; i++) {
 				irow = L_SUB(Lstore, iptr);
-	                        rhs_work[irow] -= work[i];
-	                        work[i] = 0.0;
+                rhs_work[rhs_work_offset++irow] -= work[i];
+                work[i] = 0.0;
 				iptr++;
 			    }
 			}
@@ -242,16 +248,16 @@ public class Dlu_dgstrs {
 
 		    /* dense triangular matrix */
 		    if ( nsupc == 1 ) {
-			rhs_work = &Bmat[0];
+			rhs_work = Bmat;
+			int rhs_work_offset = 0;
 			for (j = 0; j < nrhs; j++) {
-	                    rhs_work[fsupc] /= Lval[luptr];
-			    rhs_work += ldb;
+	            rhs_work[rhs_work_offset+fsupc] /= Lval[luptr];
+			    rhs_work_offset += ldb;
 			}
 		    } else {
 	if (USE_VENDOR_BLAS) {
-			BLAS blas = BLAS.getInstance();
-			blas.dtrsm("L", "U", "N", "N", &nsupc, &nrhs, &alpha,
-			       &Lval[luptr], &nsupr, &Bmat[fsupc], &ldb);
+			dtrsm("L", "U", "N", "N", nsupc, nrhs, alpha,
+			       Lval, luptr, nsupr, Bmat, fsupc, ldb);
 	} else {
 			for (j = 0, bptr = fsupc; j < nrhs; j++, bptr += ldb) {
 			    dusolve (nsupr, nsupc, &Lval[luptr], &Bmat[bptr]);
@@ -261,12 +267,13 @@ public class Dlu_dgstrs {
 
 		    /* matrix-vector update */
 		    for (j = 0, bptr = 0; j < nrhs; ++j, bptr += ldb) {
-			rhs_work = &Bmat[bptr];
+			rhs_work = Bmat;
+			int rhs_work_offset = bptr;
 			for (jcol = fsupc; jcol < fsupc + nsupc; jcol++) {
 	                    solve_ops += 2*(U_NZ_END(Ustore, jcol) - U_NZ_START(Ustore, jcol));
 			    for (i = U_NZ_START(Ustore, jcol); i < U_NZ_END(Ustore, jcol); i++ ){
 				irow = U_SUB(Ustore, i);
-	                        rhs_work[irow] -= rhs_work[jcol] * Uval[i];
+	            rhs_work[rhs_work_offset+irow] -= rhs_work[rhs_work_offset+jcol] * Uval[i];
 			    }
 			}
 		    }
@@ -280,33 +287,36 @@ public class Dlu_dgstrs {
 
 		/* Compute the final solution X <= Pc*X. */
 		for (i = 0, bptr = 0; i < nrhs; i++, bptr += ldb) {
-		    rhs_work = &Bmat[bptr];
-		    for (k = 0; k < n; k++) soln[k] = rhs_work[perm_c[k]];
-		    for (k = 0; k < n; k++) rhs_work[k] = soln[k];
+		    rhs_work = Bmat;
+		    int rhs_work_offset = bptr;
+		    for (k = 0; k < n; k++) soln[k] = rhs_work[rhs_work_offset+perm_c[k]];
+		    for (k = 0; k < n; k++) rhs_work[rhs_work_offset+k] = soln[k];
 		}
 
 	    } else { /* Solve A'*X=B */
 		/* Permute right hand sides to form Pc'*B. */
 		for (i = 0, bptr = 0; i < nrhs; i++, bptr += ldb) {
-		    rhs_work = &Bmat[bptr];
-		    for (k = 0; k < n; k++) soln[perm_c[k]] = rhs_work[k];
-		    for (k = 0; k < n; k++) rhs_work[k] = soln[k];
+		    rhs_work = Bmat;
+		    int rhs_work_offset = bptr;
+		    for (k = 0; k < n; k++) soln[perm_c[k]] = rhs_work[rhs_work_offset+k];
+		    for (k = 0; k < n; k++) rhs_work[rhs_work_offset+k] = soln[k];
 		}
 
 	        for (k = 0; k < nrhs; ++k) {
 
 	            /* Multiply by inv(U'). */
-	            sp_dtrsv('U', 'T', 'N', L, U, &Bmat[k*ldb], info);
+	            sp_dtrsv('U', 'T', 'N', L, U, Bmat, k*ldb, info);
 
 	            /* Multiply by inv(L'). */
-	            sp_dtrsv('L', 'T', 'U', L, U, &Bmat[k*ldb], info);
+	            sp_dtrsv('L', 'T', 'U', L, U, Bmat, k*ldb, info);
 
 	        }
 		/* Compute the final solution X <= Pr'*X (=inv(Pr)*X) */
 		for (i = 0, bptr = 0; i < nrhs; i++, bptr += ldb) {
-		    rhs_work = &Bmat[bptr];
-		    for (k = 0; k < n; k++) soln[k] = rhs_work[perm_r[k]];
-		    for (k = 0; k < n; k++) rhs_work[k] = soln[k];
+		    rhs_work = Bmat;
+		    int rhs_work_offset = bptr;
+		    for (k = 0; k < n; k++) soln[k] = rhs_work[rhs_work_offset+perm_r[k]];
+		    for (k = 0; k < n; k++) rhs_work[rhs_work_offset+k] = soln[k];
 		}
 
 	    } /* if-else trans */
