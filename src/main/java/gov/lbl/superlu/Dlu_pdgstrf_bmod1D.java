@@ -79,6 +79,7 @@ public class Dlu_pdgstrf_bmod1D {
 	    int          repfnz_col[]; /* repfnz[] for a column in the panel */
 	    double       dense_col[];  /* dense[] for a column in the panel */
 	    double       tempv1[];     /* used to store matrix-vector result */
+	    int tempv1_offset;
 	    int          col_marker[]; /* each column of the spa_marker[*,w] */
 	    int          col_lsub[];   /* each column of the panel_lsub[*,w] */
 	    int          lsub[], xlsub_end[];
@@ -90,7 +91,7 @@ public class Dlu_pdgstrf_bmod1D {
 	    double      one = 1.0;
 
 	    double utime[] = Gstat.utime;
-	    double f_time;
+	    double f_time = 0;
 
 	    lsub      = Glu.lsub;
 	    xlsub_end = Glu.xlsub_end;
@@ -104,6 +105,8 @@ public class Dlu_pdgstrf_bmod1D {
 	    dense_col = dense;
 	    col_marker= spa_marker;
 	    col_lsub  = panel_lsub;
+	    int repfnz_col_offset = 0, dense_col_offset = 0;
+	    int col_marker_offset = 0, col_lsub_offset = 0;
 
 	if ( DEBUGlevel>=2 ) {
 	if (jcol == BADPAN && krep == BADREP) {
@@ -116,10 +119,10 @@ public class Dlu_pdgstrf_bmod1D {
 	    /*
 	     * Sequence through each column in the panel ...
 	     */
-	    for (jj = jcol; jj < jcol + w; ++jj, col_marker += m, col_lsub += m,
-		 repfnz_col += m, dense_col += m) {
+	    for (jj = jcol; jj < jcol + w; ++jj, col_marker_offset += m, col_lsub_offset += m,
+		 repfnz_col_offset += m, dense_col_offset += m) {
 
-		kfnz = repfnz_col[krep];
+		kfnz = repfnz_col[repfnz_col_offset+krep];
 		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
 
 		segsze = krep - kfnz + 1;
@@ -134,7 +137,7 @@ public class Dlu_pdgstrf_bmod1D {
 	if (TIMING) {
 		    f_time = SuperLU_timer_();
 	}
-		    ukj = dense_col[lsub[krep_ind]];
+		    ukj = dense_col[dense_col_offset+lsub[krep_ind]];
 		    luptr += nsupr*(nsupc-1) + nsupc;
 	if ( DEBUGlevel>=2 ) {
 	if (krep == BADCOL && jj == -1) {
@@ -145,12 +148,12 @@ public class Dlu_pdgstrf_bmod1D {
 	}
 		    for (i = lptr + nsupc; i < xlsub_end[fsupc]; i++) {
 			irow = lsub[i];
-	                        dense_col[irow] -= ukj * lusup[luptr];
+	                        dense_col[dense_col_offset+irow] -= ukj * lusup[luptr];
 			++luptr;
 	if (SCATTER_FOUND) {
-			if ( col_marker[irow] != jj ) {
-			    col_marker[irow] = jj;
-			    col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			if ( col_marker[col_marker_offset+irow] != jj ) {
+			    col_marker[col_marker_offset+irow] = jj;
+			    col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			}
 	}
 		    }
@@ -161,41 +164,41 @@ public class Dlu_pdgstrf_bmod1D {
 	if (TIMING) {
 		    f_time = SuperLU_timer_();
 	}
-		    ukj = dense_col[lsub[krep_ind]];
+		    ukj = dense_col[dense_col_offset+lsub[krep_ind]];
 		    luptr += nsupr*(nsupc-1) + nsupc-1;
-		    ukj1 = dense_col[lsub[krep_ind - 1]];
+		    ukj1 = dense_col[dense_col_offset+lsub[krep_ind - 1]];
 		    luptr1 = luptr - nsupr;
 		    if ( segsze == 2 ) {
 	                ukj -= ukj1 * lusup[luptr1];
-			dense_col[lsub[krep_ind]] = ukj;
+			dense_col[dense_col_offset+lsub[krep_ind]] = ukj;
 			for (i = lptr + nsupc; i < xlsub_end[fsupc]; ++i) {
 			    irow = lsub[i];
 			    ++luptr;  ++luptr1;
-	                            dense_col[irow] -= (ukj * lusup[luptr]
+	                            dense_col[dense_col_offset+irow] -= (ukj * lusup[luptr]
 	                                                + ukj1 * lusup[luptr1]);
 	if (SCATTER_FOUND) {
-			    if ( col_marker[irow] != jj ) {
-				col_marker[irow] = jj;
-				col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			    if ( col_marker[col_marker_offset+irow] != jj ) {
+				col_marker[col_marker_offset+irow] = jj;
+				col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			    }
 	}
 			}
 		    } else {
-			ukj2 = dense_col[lsub[krep_ind - 2]];
+			ukj2 = dense_col[dense_col_offset+lsub[krep_ind - 2]];
 			luptr2 = luptr1 - nsupr;
 	                ukj1 -= ukj2 * lusup[luptr2-1];
 	                ukj = ukj - ukj1*lusup[luptr1] - ukj2*lusup[luptr2];
-			dense_col[lsub[krep_ind]] = ukj;
-			dense_col[lsub[krep_ind-1]] = ukj1;
+			dense_col[dense_col_offset+lsub[krep_ind]] = ukj;
+			dense_col[dense_col_offset+lsub[krep_ind-1]] = ukj1;
 			for (i = lptr + nsupc; i < xlsub_end[fsupc]; ++i) {
 			    irow = lsub[i];
 			    ++luptr; ++luptr1; ++luptr2;
-	                    dense_col[irow] -= (ukj * lusup[luptr]
+	                    dense_col[dense_col_offset+irow] -= (ukj * lusup[luptr]
 	                             + ukj1*lusup[luptr1] + ukj2*lusup[luptr2]);
 	if (SCATTER_FOUND) {
-			    if ( col_marker[irow] != jj ) {
-				col_marker[irow] = jj;
-				col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			    if ( col_marker[col_marker_offset+irow] != jj ) {
+				col_marker[col_marker_offset+irow] = jj;
+				col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			    }
 	}
 			}
@@ -218,7 +221,7 @@ public class Dlu_pdgstrf_bmod1D {
 	/*#pragma ivdep*/
 		    for (i = 0; i < segsze; ++i) {
 			irow = lsub[isub];
-			tempv[i] = dense_col[irow]; /* Gather */
+			tempv[i] = dense_col[dense_col_offset+irow]; /* Gather */
 			++isub;
 		    }
 
@@ -233,19 +236,21 @@ public class Dlu_pdgstrf_bmod1D {
 			   nsupr, tempv, 0, incx );
 
 		    luptr += segsze;	/* Dense matrix-vector */
-		    tempv1 = &tempv[segsze];
+		    tempv1 = tempv;
+		    tempv1_offset = segsze;
 
-	            alpha = one;
-	            beta = zero;
+	        alpha = one;
+	        beta = zero;
 
 		    dgemv( "N", nrow, segsze, alpha, lusup, luptr,
-			   nsupr, tempv, incx, beta, tempv1, incy );
+			   nsupr, tempv, 0, incx, beta, tempv1, tempv1_offset, incy );
 	} else {
-		    dlsolve ( nsupr, segsze, lusup, luptr, tempv );
+		    dlsolve ( nsupr, segsze, lusup, luptr, tempv, 0 );
 
 		    luptr += segsze;        /* Dense matrix-vector */
-		    tempv1 = &tempv[segsze];
-		    dmatvec (nsupr, nrow, segsze, lusup, luptr, tempv, tempv1);
+		    tempv1 = tempv;
+		    tempv1_offset = segsze;
+		    dmatvec (nsupr, nrow, segsze, lusup, luptr, tempv, 0, tempv1, tempv1_offset);
 	}
 
 	if (TIMING) {
@@ -261,13 +266,13 @@ public class Dlu_pdgstrf_bmod1D {
 	/*#pragma ivdep*/
 		    for (i = 0; i < segsze; i++) {
 			irow = lsub[isub];
-			dense_col[irow] = tempv[i]; /* Scatter */
+			dense_col[dense_col_offset+irow] = tempv[i]; /* Scatter */
 			tempv[i] = zero;
 			isub++;
 	if ( DEBUGlevel>=2 ) {
 		if (jj == -1 && krep == 3423)
 		    printf("(%d) pdgstrf_bmod1D[scatter] jj %d, dense_col[%d] %e\n",
-			   pnum, jj, irow, dense_col[irow]);
+			   pnum, jj, irow, dense_col[dense_col_offset+irow]);
 	}
 		    }
 
@@ -275,14 +280,14 @@ public class Dlu_pdgstrf_bmod1D {
 	/*#pragma ivdep*/
 		    for (i = 0; i < nrow; i++) {
 			irow = lsub[isub];
-	                dense_col[irow] -= tempv1[i]; /* Scatter-add */
+	                dense_col[dense_col_offset+irow] -= tempv1[tempv1_offset+i]; /* Scatter-add */
 	if (SCATTER_FOUND) {
-			if ( col_marker[irow] != jj ) {
-			    col_marker[irow] = jj;
-			    col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			if ( col_marker[col_marker_offset+irow] != jj ) {
+			    col_marker[col_marker_offset+irow] = jj;
+			    col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			}
 	}
-			tempv1[i] = zero;
+			tempv1[tempv1_offset+i] = zero;
 			isub++;
 		    }
 

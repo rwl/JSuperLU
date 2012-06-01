@@ -89,7 +89,7 @@ public class Dlu_pdgstrf_bmod2D {
 	    float flopcnt;
 
 	    double utime[] = Gstat.utime;
-	    double f_time;
+	    double f_time = 0;
 
 	    if ( first != 0 ) {
 		maxsuper = sp_ienv(3);
@@ -104,12 +104,15 @@ public class Dlu_pdgstrf_bmod2D {
 	    xlusup    = Glu.xlusup;
 	    lptr      = Glu.xlsub[fsupc];
 	    krep_ind  = lptr + nsupc - 1;
+
 	    repfnz_col= repfnz;
 	    dense_col = dense;
 	    TriTmp    = tempv;
 	    col_marker= spa_marker;
 	    col_lsub  = panel_lsub;
-
+	    int repfnz_col_offset = 0, dense_col_offset = 0;
+	    int TriTmp_offset = 0;
+	    int col_marker_offset = 0, col_lsub_offset = 0;
 
 	    /* ---------------------------------------------------------------
 	     * Sequence through each column in the panel -- triangular solves.
@@ -119,10 +122,10 @@ public class Dlu_pdgstrf_bmod2D {
 	     * matrix-vector updates from below the diagonal block.
 	     * ---------------------------------------------------------------
 	     */
-	    for (jj = jcol; jj < jcol + w; ++jj, col_marker += m, col_lsub += m,
-		 repfnz_col += m, dense_col += m, TriTmp += ldaTmp ) {
+	    for (jj = jcol; jj < jcol + w; ++jj, col_marker_offset += m, col_lsub_offset += m,
+		 repfnz_col_offset += m, dense_col_offset += m, TriTmp_offset += ldaTmp ) {
 
-		kfnz = repfnz_col[krep];
+		kfnz = repfnz_col[repfnz_col_offset+krep];
 		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
 
 		segsze = krep - kfnz + 1;
@@ -140,16 +143,16 @@ public class Dlu_pdgstrf_bmod2D {
 
 		/* Case 1: Update U-segment of size 1 -- col-col update */
 		if ( segsze == 1 ) {
-		    ukj = dense_col[lsub[krep_ind]];
+		    ukj = dense_col[dense_col_offset+lsub[krep_ind]];
 		    luptr += nsupr*(nsupc-1) + nsupc;
 		    for (i = lptr + nsupc; i < xlsub_end[fsupc]; i++) {
 			irow = lsub[i];
-	                dense_col[irow] -= ukj * lusup[luptr];
+	                dense_col[dense_col_offset+irow] -= ukj * lusup[luptr];
 			++luptr;
 	if (SCATTER_FOUND) {
-			if ( col_marker[irow] != jj ) {
-			    col_marker[irow] = jj;
-			    col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			if ( col_marker[col_marker_offset+irow] != jj ) {
+			    col_marker[col_marker_offset+irow] = jj;
+			    col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			}
 	}
 		    }
@@ -157,22 +160,22 @@ public class Dlu_pdgstrf_bmod2D {
 		    utime[FLOAT.ordinal()] += SuperLU_timer_() - f_time;
 	}
 		} else if ( segsze <= 3 ) {
-		    ukj = dense_col[lsub[krep_ind]];
-		    ukj1 = dense_col[lsub[krep_ind - 1]];
+		    ukj = dense_col[dense_col_offset+lsub[krep_ind]];
+		    ukj1 = dense_col[dense_col_offset+lsub[krep_ind - 1]];
 		    luptr += nsupr*(nsupc-1) + nsupc-1;
 		    luptr1 = luptr - nsupr;
 		    if ( segsze == 2 ) {
 	                ukj -= ukj1 * lusup[luptr1];
-			dense_col[lsub[krep_ind]] = ukj;
+			dense_col[dense_col_offset+lsub[krep_ind]] = ukj;
 			for (i = lptr + nsupc; i < xlsub_end[fsupc]; ++i) {
 			    irow = lsub[i];
 			    luptr++; luptr1++;
-	                    dense_col[irow] -= (ukj * lusup[luptr]
+	                    dense_col[dense_col_offset+irow] -= (ukj * lusup[luptr]
 	                                                + ukj1 * lusup[luptr1]);
 	if (SCATTER_FOUND) {
-			    if ( col_marker[irow] != jj ) {
-				col_marker[irow] = jj;
-				col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			    if ( col_marker[col_marker_offset+irow] != jj ) {
+				col_marker[col_marker_offset+irow] = jj;
+				col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			    }
 	}
 			}
@@ -180,21 +183,21 @@ public class Dlu_pdgstrf_bmod2D {
 			utime[FLOAT.ordinal()] += SuperLU_timer_() - f_time;
 	}
 		    } else {
-			ukj2 = dense_col[lsub[krep_ind - 2]];
+			ukj2 = dense_col[dense_col_offset+lsub[krep_ind - 2]];
 			luptr2 = luptr1 - nsupr;
 	                ukj1 -= ukj2 * lusup[luptr2-1];
 	                ukj = ukj - ukj1*lusup[luptr1] - ukj2*lusup[luptr2];
-			dense_col[lsub[krep_ind]] = ukj;
-			dense_col[lsub[krep_ind-1]] = ukj1;
+			dense_col[dense_col_offset+lsub[krep_ind]] = ukj;
+			dense_col[dense_col_offset+lsub[krep_ind-1]] = ukj1;
 			for (i = lptr + nsupc; i < xlsub_end[fsupc]; ++i) {
 			    irow = lsub[i];
 			    luptr++; luptr1++; luptr2++;
-	                    dense_col[irow] -= (ukj * lusup[luptr]
+	                    dense_col[dense_col_offset+irow] -= (ukj * lusup[luptr]
 	                             + ukj1*lusup[luptr1] + ukj2*lusup[luptr2]);
 	if (SCATTER_FOUND) {
-			    if ( col_marker[irow] != jj ) {
-				col_marker[irow] = jj;
-				col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			    if ( col_marker[col_marker_offset+irow] != jj ) {
+				col_marker[col_marker_offset+irow] = jj;
+				col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			    }
 	}
 			}
@@ -209,7 +212,7 @@ public class Dlu_pdgstrf_bmod2D {
 		    isub = lptr + no_zeros;
 		    for (i = 0; i < segsze; ++i) {
 			irow = lsub[isub];
-			TriTmp[i] = dense_col[irow]; /* Gather */
+			TriTmp[TriTmp_offset+i] = dense_col[dense_col_offset+irow]; /* Gather */
 			++isub;
 		    }
 
@@ -222,9 +225,9 @@ public class Dlu_pdgstrf_bmod2D {
 
 	if (USE_VENDOR_BLAS) {
 		    dtrsv( "L", "N", "U", segsze, lusup, luptr,
-			   nsupr, TriTmp, 0, incx );
+			   nsupr, TriTmp, TriTmp_offset, incx );
 	} else {
-		    dlsolve ( nsupr, segsze, lusup, luptr, TriTmp, 0 );
+		    dlsolve ( nsupr, segsze, lusup, luptr, TriTmp, TriTmp_offset );
 	}
 
 	if (TIMING) {
@@ -247,16 +250,21 @@ public class Dlu_pdgstrf_bmod2D {
 		isub1 = lptr + nsupc + r_ind;
 
 		repfnz_col = repfnz;
+		repfnz_col_offset = 0;
 		TriTmp = tempv;
+		TriTmp_offset = 0;
 		dense_col = dense;
+		dense_col_offset = 0;
 		col_marker= spa_marker;
+		col_marker_offset = 0;
 		col_lsub  = panel_lsub;
+		col_lsub_offset = 0;
 
 		/* Sequence through each column in the panel -- matrix-vector */
-		for (jj = jcol; jj < jcol + w; ++jj, col_marker += m, col_lsub += m,
-		     repfnz_col += m, dense_col += m, TriTmp += ldaTmp) {
+		for (jj = jcol; jj < jcol + w; ++jj, col_marker_offset += m, col_lsub_offset += m,
+		     repfnz_col_offset += m, dense_col_offset += m, TriTmp_offset += ldaTmp) {
 
-		    kfnz = repfnz_col[krep];
+		    kfnz = repfnz_col[repfnz_col_offset+krep];
 		    if ( kfnz == EMPTY ) continue; /* skip any zero segment */
 
 		    segsze = krep - kfnz + 1;
@@ -266,7 +274,8 @@ public class Dlu_pdgstrf_bmod2D {
 		       matrix-vector into SPA dense[*].		 */
 		    no_zeros = kfnz - fsupc;
 		    luptr1 = luptr + nsupr * no_zeros;
-		    MatvecTmp = &TriTmp[maxsuper];
+		    MatvecTmp = TriTmp;
+		    int MatvecTmp_offset = TriTmp_offset+maxsuper;
 
 	if (TIMING) {
 		    f_time = SuperLU_timer_();
@@ -276,10 +285,10 @@ public class Dlu_pdgstrf_bmod2D {
 	            alpha = one;
 	            beta = zero;
 		    dgemv( "N", block_nrow, segsze, alpha, lusup, luptr1,
-			   nsupr, TriTmp, 0, incx, beta, MatvecTmp, 0, incy );
+			   nsupr, TriTmp, TriTmp_offset, incx, beta, MatvecTmp, MatvecTmp_offset, incy );
 	} else {
 		    dmatvec(nsupr, block_nrow, segsze, lusup, luptr1,
-			    TriTmp, 0, MatvecTmp);
+			    TriTmp, TriTmp_offset, MatvecTmp, MatvecTmp_offset);
 	}
 
 	if (TIMING) {
@@ -294,14 +303,14 @@ public class Dlu_pdgstrf_bmod2D {
 		    isub = isub1;
 		    for (i = 0; i < block_nrow; i++) {
 			irow = lsub[isub];
-	                dense_col[irow] -= MatvecTmp[i]; /* Scatter-add */
+	                dense_col[dense_col_offset+irow] -= MatvecTmp[MatvecTmp_offset+i]; /* Scatter-add */
 	if (SCATTER_FOUND) {
-			if ( col_marker[irow] != jj ) {
-			    col_marker[irow] = jj;
-			    col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			if ( col_marker[col_marker_offset+irow] != jj ) {
+			    col_marker[col_marker_offset+irow] = jj;
+			    col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			}
 	}
-			MatvecTmp[i] = zero;
+			MatvecTmp[MatvecTmp_offset+i] = zero;
 			++isub;
 		    }
 
@@ -314,12 +323,15 @@ public class Dlu_pdgstrf_bmod2D {
 	       Scatter the triangular solves into SPA dense[*].
 	       ------------------------------------------------ */
 	    repfnz_col = repfnz;
+	    repfnz_col_offset = 0;
 	    TriTmp = tempv;
+	    TriTmp_offset = 0;
 	    dense_col = dense;
+	    dense_col_offset = 0;
 
-	    for (jj = 0; jj < w; ++jj, repfnz_col += m, dense_col += m,
-		 TriTmp += ldaTmp) {
-		kfnz = repfnz_col[krep];
+	    for (jj = 0; jj < w; ++jj, repfnz_col_offset += m, dense_col_offset += m,
+		 TriTmp_offset += ldaTmp) {
+		kfnz = repfnz_col[repfnz_col_offset+krep];
 		if ( kfnz == EMPTY ) continue; /* skip any zero segment */
 
 		segsze = krep - kfnz + 1;
@@ -329,8 +341,8 @@ public class Dlu_pdgstrf_bmod2D {
 		isub = lptr + no_zeros;
 		for (i = 0; i < segsze; i++) {
 		    irow = lsub[isub];
-		    dense_col[irow] = TriTmp[i]; /* Scatter */
-		    TriTmp[i] = zero;
+		    dense_col[dense_col_offset+irow] = TriTmp[TriTmp_offset+i]; /* Scatter */
+		    TriTmp[TriTmp_offset+i] = zero;
 		    ++isub;
 		}
 	    } /* for jj ... */

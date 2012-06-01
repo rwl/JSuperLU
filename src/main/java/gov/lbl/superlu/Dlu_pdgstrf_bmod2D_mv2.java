@@ -19,6 +19,8 @@ import static gov.lbl.superlu.Dlu.dgemv;
 import static gov.lbl.superlu.Dlu_superlu_timer.SuperLU_timer_;
 
 import static gov.lbl.superlu.Dlu_dmyblas2.dlsolve;
+import static gov.lbl.superlu.Dlu_dmyblas2.dmatvec;
+import static gov.lbl.superlu.Dlu_dmyblas2.dmatvec2;
 
 
 public class Dlu_pdgstrf_bmod2D_mv2 {
@@ -88,16 +90,18 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 	    int          kfnz2[], jj2[]; /* detect two identical columns */
 	    kfnz2 = new int[2];
 	    jj2 = new int[2];
-	    double       tri[], matvec[];
-	    tri = new double[2];
-	    matvec = new double[2];
+	    double[]       tri[], matvec[];
+	    tri = new double[2][];
+	    int[] tri_offset = {0, 0};
+	    matvec = new double[2][];
+	    int[] matvec_offset = {0, 0};
 	    int          lsub[], xlsub_end[];
 	    double       lusup[];
 	    int          xlusup[];
 	    float flopcnt;
 
 	    double utime[] = Gstat.utime;
-	    double f_time;
+	    double f_time = 0;
 
 	    if ( first != 0 ) {
 		maxsuper = sp_ienv(3);
@@ -127,11 +131,14 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 	    TriTmp    = tempv;
 	    col_marker= spa_marker;
 	    col_lsub  = panel_lsub;
+	    int repfnz_col_offset = 0, dense_col_offset = 0;
+	    int TriTmp_offset = 0;
+	    int col_marker_offset = 0, col_lsub_offset = 0;
 
-	    for (jj = jcol; jj < jcol + w; ++jj, col_marker += n, col_lsub += n,
-		 repfnz_col += n, dense_col += n, TriTmp += ldaTmp ) {
+	    for (jj = jcol; jj < jcol + w; ++jj, col_marker_offset += n, col_lsub_offset += n,
+		 repfnz_col_offset += n, dense_col_offset += n, TriTmp_offset += ldaTmp ) {
 
-		kfnz = repfnz_col[krep];
+		kfnz = repfnz_col[repfnz_col_offset+krep];
 		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
 
 		segsze = krep - kfnz + 1;
@@ -146,16 +153,16 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 
 		/* Case 1: Update U-segment of size 1 -- col-col update */
 		if ( segsze == 1 ) {
-		    ukj = dense_col[lsub[krep_ind]];
+		    ukj = dense_col[dense_col_offset+lsub[krep_ind]];
 		    luptr += nsupr*(nsupc-1) + nsupc;
 		    for (i = lptr + nsupc; i < xlsub_end[fsupc]; i++) {
 			irow = lsub[i];
-	                dense_col[irow] -= ukj * lusup[luptr];
+	                dense_col[dense_col_offset+irow] -= ukj * lusup[luptr];
 			++luptr;
 	if (SCATTER_FOUND) {
-			if ( col_marker[irow] != jj ) {
-			    col_marker[irow] = jj;
-			    col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			if ( col_marker[col_marker_offset+irow] != jj ) {
+			    col_marker[col_marker_offset+irow] = jj;
+			    col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			}
 	}
 		    }
@@ -163,22 +170,22 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 		    utime[FLOAT.ordinal()] += SuperLU_timer_() - f_time;
 	}
 		} else if ( segsze <= 3 ) {
-		    ukj = dense_col[lsub[krep_ind]];
-		    ukj1 = dense_col[lsub[krep_ind - 1]];
+		    ukj = dense_col[dense_col_offset+lsub[krep_ind]];
+		    ukj1 = dense_col[dense_col_offset+lsub[krep_ind - 1]];
 		    luptr += nsupr*(nsupc-1) + nsupc-1;
 		    luptr1 = luptr - nsupr;
 		    if ( segsze == 2 ) {
 	                ukj -= ukj1 * lusup[luptr1];
-			dense_col[lsub[krep_ind]] = ukj;
+			dense_col[dense_col_offset+lsub[krep_ind]] = ukj;
 			for (i = lptr + nsupc; i < xlsub_end[fsupc]; ++i) {
 			    irow = lsub[i];
 			    luptr++; luptr1++;
-	                    dense_col[irow] -= (ukj * lusup[luptr]
+			    dense_col[dense_col_offset+irow] -= (ukj * lusup[luptr]
 	                                                + ukj1 * lusup[luptr1]);
 	if (SCATTER_FOUND) {
-			    if ( col_marker[irow] != jj ) {
-				col_marker[irow] = jj;
-				col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			    if ( col_marker[col_marker_offset+irow] != jj ) {
+				col_marker[col_marker_offset+irow] = jj;
+				col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			    }
 	}
 			}
@@ -186,21 +193,21 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 			utime[FLOAT.ordinal()] += SuperLU_timer_() - f_time;
 	}
 		    } else {
-			ukj2 = dense_col[lsub[krep_ind - 2]];
+			ukj2 = dense_col[dense_col_offset+lsub[krep_ind - 2]];
 			luptr2 = luptr1 - nsupr;
 	                ukj1 -= ukj2 * lusup[luptr2-1];
 	                ukj = ukj - ukj1*lusup[luptr1] - ukj2*lusup[luptr2];
-			dense_col[lsub[krep_ind]] = ukj;
-			dense_col[lsub[krep_ind-1]] = ukj1;
+			dense_col[dense_col_offset+lsub[krep_ind]] = ukj;
+			dense_col[dense_col_offset+lsub[krep_ind-1]] = ukj1;
 			for (i = lptr + nsupc; i < xlsub_end[fsupc]; ++i) {
 			    irow = lsub[i];
 			    luptr++; luptr1++; luptr2++;
-	                    dense_col[irow] -= (ukj * lusup[luptr]
+	                    dense_col[dense_col_offset+irow] -= (ukj * lusup[luptr]
 	                             + ukj1*lusup[luptr1] + ukj2*lusup[luptr2]);
 	if (SCATTER_FOUND) {
-			    if ( col_marker[irow] != jj ) {
-				col_marker[irow] = jj;
-				col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			    if ( col_marker[col_marker_offset+irow] != jj ) {
+				col_marker[col_marker_offset+irow] = jj;
+				col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			    }
 	}
 			}
@@ -215,7 +222,7 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 		    isub = lptr + no_zeros;
 		    for (i = 0; i < segsze; ++i) {
 			irow = lsub[isub];
-			TriTmp[i] = dense_col[irow]; /* Gather */
+			TriTmp[TriTmp_offset+i] = dense_col[dense_col_offset+irow]; /* Gather */
 			++isub;
 		    }
 
@@ -228,9 +235,9 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 
 	if (USE_VENDOR_BLAS) {
 		    dtrsv( "L", "N", "U", segsze, lusup, luptr,
-			   nsupr, TriTmp, 0, incx );
+			   nsupr, TriTmp, TriTmp_offset, incx );
 	} else {
-		    dlsolve ( nsupr, segsze, lusup, luptr, TriTmp, 0 );
+		    dlsolve ( nsupr, segsze, lusup, luptr, TriTmp, TriTmp_offset );
 	}
 	if (TIMING) {
 		    utime[FLOAT.ordinal()] += SuperLU_timer_() - f_time;
@@ -250,12 +257,13 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 		luptr1 = xlusup[fsupc] + nsupc + r_ind;
 		isub1 = lptr + nsupc + r_ind;
 		repfnz_col = repfnz;
+		repfnz_col_offset = 0;
 		twocols = 0;
 
 		/* Sequence through each column in the panel -- matrix-vector */
-		for (jj = jcol; jj < jcol + w; ++jj, repfnz_col += n) {
+		for (jj = jcol; jj < jcol + w; ++jj, repfnz_col_offset += n) {
 
-		    kfnz = repfnz_col[krep];
+		    kfnz = repfnz_col[repfnz_col_offset+krep];
 		    if ( kfnz == EMPTY ) continue; /* skip zero segment */
 		    segsze = krep - kfnz + 1;
 		    if ( segsze <= 3 ) continue;   /* skip unrolled cases */
@@ -268,8 +276,10 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 			for (j = 0; j < 2; ++j) {
 			    i = n * (jj2[j] - jcol);
 			    kfnz2[j] = repfnz[i + krep];
-			    tri[j] = tempv + ldaTmp * (jj2[j] - jcol);
-			    matvec[j] = tri[j] + maxsuper;
+			    tri[j] = tempv;
+			    tri_offset[j] = ldaTmp * (jj2[j] - jcol);
+			    matvec[j] = tri[j];
+			    matvec_offset[j] = tri_offset[j] + maxsuper;
 			}
 
 			if ( kfnz2[0] < kfnz2[1] ) { /* First column is bigger */
@@ -278,10 +288,10 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 			    luptr = luptr1 + nsupr * no_zeros;
 	if (USE_VENDOR_BLAS) {
 			    dgemv( "N", block_nrow, segsze, alpha, lusup, luptr,
-				   nsupr, tri, 0, incx, beta, matvec, 0, incy );
+				   nsupr, tri[0], tri_offset[0], incx, beta, matvec[0], matvec_offset[0], incy );
 	} else {
 			    dmatvec (nsupr, block_nrow, segsze, lusup, luptr,
-				     tri, 0, matvec, 0);
+				     tri[0], tri_offset[0], matvec[0], matvec_offset[0]);
 	}
 			} else if ( kfnz2[0] > kfnz2[1] ) {
 			    no_zeros = kfnz2[1] - fsupc;
@@ -289,10 +299,10 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 			    luptr = luptr1 + nsupr * no_zeros;
 	if (USE_VENDOR_BLAS) {
 			    dgemv( "N", block_nrow, segsze, alpha, lusup, luptr,
-				   nsupr, tri, 1, incx, beta, matvec, 1, incy );
+				   nsupr, tri[1], tri_offset[1], incx, beta, matvec[1], matvec_offset[1], incy );
 	} else {
 			    dmatvec (nsupr, block_nrow, segsze, lusup, luptr,
-				     tri, 1, matvec, 1);
+				     tri[1], tri_offset[1], matvec[1], matvec_offset[1]);
 	}
 			}
 
@@ -302,9 +312,9 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 			segsze = krep - kfnz + 1;
 			luptr = luptr1 + nsupr * no_zeros;
 
-			dmatvec2 (nsupr, block_nrow, segsze, &lusup[luptr],
-				  &tri[0][kfnz-kfnz2[0]], &tri[1][kfnz-kfnz2[1]],
-				  matvec[0], matvec[1]);
+			dmatvec2 (nsupr, block_nrow, segsze, lusup, luptr,
+				  tri[0], tri_offset[0] + kfnz-kfnz2[0], tri[1], tri_offset[1] + kfnz-kfnz2[1],
+				  matvec[0], matvec_offset[0], matvec[1], matvec_offset[1]);
 
 	if (TIMING) {
 			utime[FLOAT.ordinal()] += SuperLU_timer_() - f_time;
@@ -319,8 +329,10 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 
 		if ( twocols == 1 ) { /* one more column left */
 		    i = jj2[0] - jcol;
-		    tri[0] = tempv + ldaTmp * i;
-		    matvec[0] = tri[0] + maxsuper;
+		    tri[0] = tempv;
+		    tri_offset[0] = ldaTmp * i;
+		    matvec[0] = tri[0];
+		    matvec_offset[0] = tri_offset[0] + maxsuper;
 		    kfnz = repfnz[i*n + krep];
 		    no_zeros = kfnz - fsupc;
 		    segsze = krep - kfnz + 1;
@@ -328,22 +340,26 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 
 	if (USE_VENDOR_BLAS) {
 		    dgemv( "N", block_nrow, segsze, alpha, lusup, luptr,
-			   nsupr, tri, 0, incx, beta, matvec, 0, incy );
+			   nsupr, tri[0], tri_offset[0], incx, beta, matvec[0], matvec_offset[0], incy );
 	} else {
 		    dmatvec(nsupr, block_nrow, segsze, lusup, luptr,
-			    tri, 0, matvec, 0);
+			    tri[0], tri_offset[0], matvec[0], matvec_offset[0]);
 	}
 		} /* if twocols == 1 */
-
 		/* Scatter matvec[*] into SPA dense[*]. */
 		repfnz_col = repfnz;
+		repfnz_col_offset = 0;
 		dense_col = dense;
+		dense_col_offset = 0;
 		col_marker = spa_marker;
+		col_marker_offset = 0;
 		col_lsub = panel_lsub;
-		matvec[0] = tempv + maxsuper;
-		for (jj = jcol; jj < jcol + w; ++jj, repfnz_col += n, dense_col += n,
-		     col_marker += n, col_lsub += n, matvec[0] += ldaTmp) {
-		    kfnz = repfnz_col[krep];
+		col_lsub_offset = 0;
+		matvec[0] = tempv;
+		matvec_offset[0] = maxsuper;
+		for (jj = jcol; jj < jcol + w; ++jj, repfnz_col_offset += n, dense_col_offset += n,
+		     col_marker_offset += n, col_lsub_offset += n, matvec_offset[0] += ldaTmp) {
+		    kfnz = repfnz_col[repfnz_col_offset+krep];
 		    if ( kfnz == EMPTY ) continue; /* skip zero segment */
 		    segsze = krep - kfnz + 1;
 		    if ( segsze <= 3 ) continue;   /* skip unrolled cases */
@@ -351,14 +367,14 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 		    isub = isub1;
 		    for (i = 0; i < block_nrow; ++i) {
 			irow = lsub[isub];
-	                dense_col[irow] -= matvec[0][i]; /* Scatter-add */
+	        dense_col[dense_col_offset+irow] -= matvec[0][matvec_offset[0]+i]; /* Scatter-add */
 	if (SCATTER_FOUND) {
-			if ( col_marker[irow] != jj ) {
-			    col_marker[irow] = jj;
-			    col_lsub[w_lsub_end[jj-jcol]++] = irow;
+			if ( col_marker[col_marker_offset+irow] != jj ) {
+			    col_marker[col_marker_offset+irow] = jj;
+			    col_lsub[col_lsub_offset+w_lsub_end[jj-jcol]++] = irow;
 			}
 	}
-			matvec[0][i] = zero;
+			matvec[0][matvec_offset[0]+i] = zero;
 			++isub;
 		    }
 		} /* for jj ... */
@@ -370,11 +386,14 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 	       Scatter the triangular solves into SPA dense[*].
 	       ------------------------------------------------ */
 	    repfnz_col = repfnz;
+	    repfnz_col_offset = 0;
 	    dense_col = dense;
+	    dense_col_offset = 0;
 	    TriTmp = tempv;
-	    for (jj = 0; jj < w; ++jj, repfnz_col += n,
-		 dense_col += n, TriTmp += ldaTmp) {
-		kfnz = repfnz_col[krep];
+	    TriTmp_offset = 0;
+	    for (jj = 0; jj < w; ++jj, repfnz_col_offset += n,
+		 dense_col_offset += n, TriTmp_offset += ldaTmp) {
+		kfnz = repfnz_col[repfnz_col_offset+krep];
 		if ( kfnz == EMPTY ) continue; /* skip any zero segment */
 		segsze = krep - kfnz + 1;
 		if ( segsze <= 3 ) continue;   /* skip unrolled cases */
@@ -383,8 +402,8 @@ public class Dlu_pdgstrf_bmod2D_mv2 {
 		isub = lptr + no_zeros;
 		for (i = 0; i < segsze; i++) {
 		    irow = lsub[isub];
-		    dense_col[irow] = TriTmp[i]; /* Scatter */
-		    TriTmp[i] = zero;
+		    dense_col[dense_col_offset+irow] = TriTmp[TriTmp_offset+i]; /* Scatter */
+		    TriTmp[TriTmp_offset+i] = zero;
 		    ++isub;
 		}
 	    } /* for jj ... */

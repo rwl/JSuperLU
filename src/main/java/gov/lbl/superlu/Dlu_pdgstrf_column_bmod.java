@@ -230,7 +230,7 @@ public class Dlu_pdgstrf_column_bmod {
 	 		luptr += segsze;  /* Dense matrix-vector */
 			tempv1 = tempv;
 			tempv1_offset = segsze;
-			dmatvec (nsupr, nrow , segsze, lusup, luptr, tempv, tempv1_offset, tempv1);
+			dmatvec (nsupr, nrow , segsze, lusup, luptr, tempv, tempv1_offset, tempv1, 0);
 	}
 	                /* Scatter tempv[] into SPA dense[*] */
 	                isub = lptr + no_zeros;
@@ -335,7 +335,7 @@ public class Dlu_pdgstrf_column_bmod {
 		dlsolve ( nsupr, nsupc, lusup, luptr, lusup, ufirst );
 
 		dmatvec ( nsupr, nrow, nsupc, lusup, luptr+nsupc,
-			 lusup, ufirst, tempv );
+			 lusup, ufirst, tempv, 0 );
 
 	        /* Copy updates from tempv[*] into lusup[*] */
 		isub = ufirst + nsupc;
