@@ -89,9 +89,9 @@ public class Dlu_pdgstrf_column_dfs {
 	    GlobalLU_t Glu = pxgstrf_shared.Glu; /* modified */
 	    Gstat_t Gstat = pxgstrf_shared.Gstat; /* modified */
 	    int jcolm1, jcolm1size, nextl, ifrom;
-	    int k, krep, krow, kperm, samesuper, nsuper;
+	    int k, krep, krow, kperm, samesuper, nsuper = 0;
 	    int no_lsub;
-	    int	    fsupc;		/* first column in a supernode */
+	    int	    fsupc = 0;		/* first column in a supernode */
 	    int     myfnz;		/* first nonz column in a U-segment */
 	    int	    chperm, chmark, chrep, kchild;
 	    int     xdfs, maxdfs, kpar;
@@ -309,7 +309,9 @@ public class Dlu_pdgstrf_column_dfs {
 	     * a previous supernode. (first for num values, last for pruning)
 	     */
 	    if ( samesuper == NO.ordinal() ) { /* starts a new supernode */
-		nsuper = NewNsuper(pnum, pxgstrf_shared, Glu.nsuper);
+	    int[] nsuper_ = new int[1];
+		nsuper = NewNsuper(pnum, pxgstrf_shared, nsuper_);
+		Glu.nsuper = nsuper_[0];
 		xsup[nsuper] = jcol;
 
 		/* Copy column jcol; also reserve space to store pruned graph */
@@ -346,7 +348,7 @@ public class Dlu_pdgstrf_column_dfs {
 	  if (jcol == BADCOL) {
 	    printf("(%d) pdgstrf_column_dfs[3]: %d in prev s-node %d? %d\n",
 		   pnum, jcol, fsupc, samesuper);
-	    PrintInt10("lsub", xlsub_end[jcol]-xlsub[jcol], &lsub[xlsub[jcol]]);
+	    PrintInt10("lsub", xlsub_end[jcol]-xlsub[jcol], lsub, xlsub[jcol]);
 	  }
 	}
 

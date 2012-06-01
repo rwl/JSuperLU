@@ -627,12 +627,18 @@ public class Dlu_util {
 	static
 	int PrintInt10(String name, int len, int x[])
 	{
+		return PrintInt10(name, len, x, 0);
+	}
+
+	static
+	int PrintInt10(String name, int len, int x[], int x_offset)
+	{
 	    int i;
 
 	    printf("(len=%d) %s:", len, name);
 	    for (i = 0; i < len; ++i) {
 		if ( i % 10 == 0 ) printf("\n[%4d-%4d]", i, i+9);
-		printf("%6d", x[i]);
+		printf("%6d", x[x_offset+i]);
 	    }
 	    printf("\n");
 	    return 0;

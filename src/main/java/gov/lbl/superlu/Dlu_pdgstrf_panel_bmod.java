@@ -1,14 +1,21 @@
 package gov.lbl.superlu;
 
+import java.util.Arrays;
+
 import gov.lbl.superlu.Dlu_pdsp_defs.GlobalLU_t;
 import gov.lbl.superlu.Dlu_pdsp_defs.pxgstrf_shared_t;
 import gov.lbl.superlu.Dlu_slu_mt_util.Gstat_t;
+import gov.lbl.superlu.Dlu_slu_mt_util.desc_eft_t;
 
 import static gov.lbl.superlu.Dlu_sp_ienv.sp_ienv;
 import static gov.lbl.superlu.Dlu_slu_mt_util.BADPAN;
 import static gov.lbl.superlu.Dlu_slu_mt_util.BADCOL;
 import static gov.lbl.superlu.Dlu_slu_mt_util.BADROW;
 import static gov.lbl.superlu.Dlu_slu_mt_util.SUPER_REP;
+import static gov.lbl.superlu.Dlu_slu_mt_util.TIC;
+import static gov.lbl.superlu.Dlu_slu_mt_util.TOC;
+import static gov.lbl.superlu.Dlu_slu_mt_util.SUPERLU_MAX;
+import static gov.lbl.superlu.Dlu_slu_mt_util.EMPTY;
 
 import static gov.lbl.superlu.Dlu.DEBUGlevel;
 import static gov.lbl.superlu.Dlu.printf;
@@ -20,10 +27,12 @@ import static gov.lbl.superlu.Dlu.PROFILE;
 import static gov.lbl.superlu.Dlu.DOPRINT;
 import static gov.lbl.superlu.Dlu.SCATTER_FOUND;
 
+import static gov.lbl.superlu.Dlu_await.await;
+
 
 public class Dlu_pdgstrf_panel_bmod {
 
-	static void PRINT_SPIN_TIME(int where) {
+	static void PRINT_SPIN_TIME(double t2, int jcol, int pnum, int kcol, int where) {
 	  if ( t2 > 0.001 ) {
 	      printf("[%d] Panel%6d on P%2d waits s-node%6d for %8.2f msec.\n",
 		     where, jcol, pnum, kcol, t2*1e3);
@@ -33,7 +42,7 @@ public class Dlu_pdgstrf_panel_bmod {
 
 	/* comparison function used by qsort() - in decreasing order */
 	static
-	int numcomp(desc_eft_t a[], desc_eft_t b[])
+	int numcomp(desc_eft_t a, desc_eft_t b)
 	{
 	    if ( a.eft < b.eft )
 		return -1;
@@ -103,7 +112,9 @@ public class Dlu_pdgstrf_panel_bmod {
 	    double       dense_col[];  /* dense[] for a column in the panel */
 	    int          col_marker[]; /* each column of the spa_marker[*,w] */
 	    int          col_lsub[];   /* each column of the panel_lsub[*,w] */
-	    double   t1, t2; /* temporary time */
+	    double[]   t1, t2; /* temporary time */
+	    t1 = new double[1];
+	    t2 = new double[1];
 
 	    float pmod, max_child_eft = 0, sum_pmod = 0, min_desc_eft = 0;
 	    float pmod_eft;
@@ -132,7 +143,7 @@ public class Dlu_pdgstrf_panel_bmod {
 	    check_panel_dfs_list(pnum, "begin", jcol, *nseg, segrep);*/
 	if (jcol == BADPAN)
 	    printf("(%d) Enter pdgstrf_panel_bmod() jcol %d,BADCOL %d,dense_col[%d] %.10f\n",
-		   pnum, jcol, BADCOL, BADROW, dense[dbg_addr+BADROW]);
+		   pnum, jcol, BADCOL, BADROW, dense[/*dbg_addr+*/BADROW]);
 	}
 
 	    /* --------------------------------------------------------------------
@@ -140,7 +151,7 @@ public class Dlu_pdgstrf_panel_bmod {
 	       perform sup-panel update.
 	       -------------------------------------------------------------------- */
 	    k = nseg[0] - 1;
-	    for (ksub = 0; ksub < *nseg; ++ksub) {
+	    for (ksub = 0; ksub < nseg[0]; ++ksub) {
 		/*
 		 * krep = representative of current k-th supernode
 		 * fsupc = first supernodal column
@@ -183,16 +194,16 @@ public class Dlu_pdgstrf_panel_bmod {
 
 	if (PREDICT_OPT) {
 		pmod = Gstat.procstat[pnum].fcops - pmod;
-		kid = (Glu.pan_status[krep].size > 0) ?
-		    krep : (krep + Glu.pan_status[krep].size);
-		desc_eft[ndesc].eft = cp_panel[kid].est + cp_panel[kid].pdiv;
-		desc_eft[ndesc++].pmod = pmod;
+		kid = (pxgstrf_shared.pan_status[krep].size > 0) ?
+		    krep : (krep + pxgstrf_shared.pan_status[krep].size);
+		Gstat.desc_eft[ndesc].eft = Gstat.cp_panel[kid].est + Gstat.cp_panel[kid].pdiv;
+		Gstat.desc_eft[ndesc++].pmod = pmod;
 	}
 
 	if ( DEBUGlevel>=2 ) {
 	if (jcol == BADPAN)
 	    printf("(%d) non-busy update: krep %d, repfnz %d, dense_col[%d] %.10e\n",
-		   pnum, krep, repfnz[dbg_addr+krep], BADROW, dense[dbg_addr+BADROW]);
+		   pnum, krep, repfnz[/*dbg_addr+*/krep], BADROW, dense[/*dbg_addr+*/BADROW]);
 	}
 
 	    } /* for each updating supernode ... */
@@ -200,7 +211,7 @@ public class Dlu_pdgstrf_panel_bmod {
 	if ( DEBUGlevel>=2 ) {
 	if (jcol == BADPAN)
 	    printf("(%d) After non-busy update: dense_col[%d] %.10e\n",
-		   pnum, BADROW, dense[dbg_addr+BADROW]);
+		   pnum, BADROW, dense[/*dbg_addr+*/BADROW]);
 	}
 
 	    /* ---------------------------------------------------------------------
@@ -238,19 +249,19 @@ public class Dlu_pdgstrf_panel_bmod {
 		col_lsub = panel_lsub;
 
 		/* Wait for the supernode, and collect wait-time statistics. */
-		if ( pxgstrf_shared.spin_locks[kcol] ) {
+		if ( pxgstrf_shared.spin_locks[kcol] != 0 ) {
 	if (PROFILE) {
 		    TIC(t1);
 	}
-		    await( &pxgstrf_shared.spin_locks[kcol] );
+		    await( pxgstrf_shared.spin_locks[kcol] );
 
 	if (PROFILE) {
-		    TOC(t2, t1);
+		    TOC(t2, t1[0]);
 		    Gstat.panstat[jcol].pipewaits++;
-		    Gstat.panstat[jcol].spintime += t2;
-		    Gstat.procstat[pnum].spintime += t2;
+		    Gstat.panstat[jcol].spintime += t2[0];
+		    Gstat.procstat[pnum].spintime += t2[0];
 	if (DOPRINT) {
-		    PRINT_SPIN_TIME(1);
+		    PRINT_SPIN_TIME(t2[0], jcol, pnum, kcol, 1);
 	}
 	}
 		}
@@ -273,19 +284,19 @@ public class Dlu_pdgstrf_panel_bmod {
 		    krep = SUPER_REP( xsup_end, ksupno );
 		    kcol = etree[kcol];
 		    if ( kcol >= jcol ) break;
-		    if ( pxgstrf_shared.spin_locks[kcol] ) {
+		    if ( pxgstrf_shared.spin_locks[kcol] != 0 ) {
 	if (PROFILE) {
 			TIC(t1);
 	}
-			await ( &pxgstrf_shared.spin_locks[kcol] );
+			await ( pxgstrf_shared.spin_locks[kcol] );
 
 	if (PROFILE) {
-			TOC(t2, t1);
+			TOC(t2, t1[0]);
 			Gstat.panstat[jcol].pipewaits++;
-			Gstat.panstat[jcol].spintime += t2;
-			Gstat.procstat[pnum].spintime += t2;
+			Gstat.panstat[jcol].spintime += t2[0];
+			Gstat.procstat[pnum].spintime += t2[0];
 	if (DOPRINT) {
-			PRINT_SPIN_TIME(2);
+			PRINT_SPIN_TIME(t2[0], jcol, pnum, kcol, 2);
 	}
 	}
 		    }
@@ -307,8 +318,8 @@ public class Dlu_pdgstrf_panel_bmod {
 	        ++(nseg[0]);
 
 		/* Determine repfnz[krep, w] for each column in the panel */
-		for (jj = jcol; jj < jcol + w; ++jj, dense_col += m,
-		       repfnz_col += m, col_marker += m, col_lsub += m) {
+		for (jj = jcol; jj < jcol + w; ++jj, dense_col[0] += m,
+		       repfnz_col[0] += m, col_marker[0] += m, col_lsub[0] += m) {
 		    /*
 		     * Note: relaxed supernode may not form a path on the e-tree,
 		     *       but its column numbers are contiguous.
@@ -405,14 +416,14 @@ public class Dlu_pdgstrf_panel_bmod {
 		pmod = Gstat.procstat[pnum].fcops - pmod;
 		kid = (pxgstrf_shared.pan_status[krep].size > 0) ?
 		       krep : (krep + pxgstrf_shared.pan_status[krep].size);
-		desc_eft[ndesc].eft = cp_panel[kid].est + cp_panel[kid].pdiv;
-		desc_eft[ndesc++].pmod = pmod;
+		Gstat.desc_eft[ndesc].eft = Gstat.cp_panel[kid].est + Gstat.cp_panel[kid].pdiv;
+		Gstat.desc_eft[ndesc++].pmod = pmod;
 	}
 
 	if ( DEBUGlevel>=2 ) {
 	if (jcol == BADPAN)
 	    printf("(%d) After busy update: dense_col[%d] %.10f\n",
-		   pnum, BADROW, dense[dbg_addr+BADROW]);
+		   pnum, BADROW, dense[/*dbg_addr+*/BADROW]);
 	}
 
 		/* Go to the parent of "krep" */
@@ -423,28 +434,28 @@ public class Dlu_pdgstrf_panel_bmod {
 	if ( DEBUGlevel>=2 ) {
 	    /*if (jcol >= LOCOL && jcol <= HICOL)*/
 	if ( jcol==BADCOL )
-	    check_panel_dfs_list(pnum, "after-busy", jcol, *nseg, segrep);
+	    check_panel_dfs_list(pnum, "after-busy", jcol, nseg[0], segrep);
 	}
 
 	if (PREDICT_OPT) {
-	    qsort(desc_eft, ndesc, sizeof(desc_eft_t), (int(*)())numcomp);
+		Arrays.sort(Gstat.desc_eft);
 	    pmod_eft = 0;
 	    for (j = 0; j < ndesc; ++j) {
-		pmod_eft = SUPERLU_MAX( pmod_eft, desc_eft[j].eft ) + desc_eft[j].pmod;
+		pmod_eft = (float) (SUPERLU_MAX( pmod_eft, Gstat.desc_eft[j].eft ) + Gstat.desc_eft[j].pmod);
 	    }
 
 	    if ( ndesc == 0 ) {
 		/* No modifications from descendants */
 		pmod_eft = 0;
-		for (j = cp_firstkid[jcol]; j != EMPTY; j = cp_nextkid[j]) {
+		for (j = Gstat.cp_firstkid[jcol]; j != EMPTY; j = Gstat.cp_nextkid[j]) {
 		    kid = (pxgstrf_shared.pan_status[j].size > 0) ?
 				j : (j + pxgstrf_shared.pan_status[j].size);
-		    pmod_eft = SUPERLU_MAX( pmod_eft,
-				   	cp_panel[kid].est + cp_panel[kid].pdiv );
+		    pmod_eft = (float) SUPERLU_MAX( pmod_eft,
+		    		Gstat.cp_panel[kid].est + Gstat.cp_panel[kid].pdiv );
 		}
 	    }
 
-	    cp_panel[jcol].est = pmod_eft;
+	    Gstat.cp_panel[jcol].est = pmod_eft;
 
 	}
 

@@ -8,7 +8,7 @@ import static gov.lbl.superlu.Dlu_pmemory.Glu_alloc;
 import static gov.lbl.superlu.Dlu_slu_mt_util.EMPTY;
 import static gov.lbl.superlu.Dlu_slu_mt_util.MemType.UCOL;
 
-
+import static gov.lbl.superlu.Dlu.printf;
 
 
 public class Dlu_pdgstrf_copy_to_ucol {
@@ -92,8 +92,8 @@ public class Dlu_pdgstrf_copy_to_ucol {
 			    dense[irow] = zero;
 	if (DEBUG) {
 	if (jcol == EMPTY)
-	    printf("(%d) pcopy_to_ucol[]: jcol %d, krep %d, irow %d, ucol %.10e\n",
-		   ME, jcol, krep, irow, ucol[nextu[0]]);
+	    printf("pcopy_to_ucol[]: jcol %d, krep %d, irow %d, ucol %.10e\n",
+		   jcol, krep, irow, ucol[nextu[0]]);
 	}
 			    nextu[0]++;
 			    isub++;

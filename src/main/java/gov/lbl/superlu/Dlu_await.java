@@ -12,13 +12,13 @@ public class Dlu_await {
 
 	@SuppressWarnings("unused")
 	static
-	int await(int status[])
+	int await(int status)
 	{
 	    int i, j, k, randnum;
 
 	    /* randnum = ( random() & 0xff ); */
 	    randnum = 0;
-	    while ( status[0] != 0 ) ;
+	    while ( status != 0 ) ;
 	if (false) {
 	    {
 		/* Length better be adaptive to the number of processors */
