@@ -477,20 +477,20 @@ public class Dlu_pdmemory {
 	/*
 	 * Set up pointers for real working arrays.
 	 */
-//	static
-//	void
-//	pdgstrf_SetRWork(int n, int panel_size, double dworkptr[],
-//			 double dense[][], double tempv[][])
-//	{
-//	    double zero = 0.0;
-//
-//	    int maxsuper = sp_ienv(3);
-//	    int rowblk   = sp_ienv(4);
-//	    dense[0] = dworkptr;
-//	    tempv[0] = dense[0] + panel_size*n;
-//	    dfill (dense[0], n * panel_size, zero);
-//	    dfill (tempv[0], NUM_TEMPV(n,panel_size,maxsuper,rowblk), zero);
-//	}
+	static
+	void
+	pdgstrf_SetRWork(int n, int panel_size, double dworkptr[],
+			 double dense[][], double tempv[][])
+	{
+	    double zero = 0.0;
+
+	    int maxsuper = sp_ienv(3);
+	    int rowblk   = sp_ienv(4);
+	    dense[0] = dworkptr;
+	    tempv[0] = dense[0] + panel_size*n;
+	    dfill (dense[0], n * panel_size, zero);
+	    dfill (tempv[0], NUM_TEMPV(n,panel_size,maxsuper,rowblk), zero);
+	}
 
 	/*
 	 * Free the working storage used by factor routines.

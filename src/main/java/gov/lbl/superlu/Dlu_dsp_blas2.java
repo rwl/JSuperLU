@@ -177,7 +177,7 @@ public class Dlu_dsp_blas2 {
 			    dlsolve (nsupr, nsupc, Lval, luptr, x, x_offset+fsupc);
 
 			    dmatvec (nsupr, nsupr-nsupc, nsupc, Lval, luptr+nsupc,
-	                             x, x_offset+fsupc, work);
+	                             x, x_offset+fsupc, work, 0);
 	}
 
 			    iptr = istart + nsupc;

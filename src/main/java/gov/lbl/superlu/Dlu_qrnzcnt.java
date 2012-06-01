@@ -6,6 +6,8 @@ import static gov.lbl.superlu.Dlu.PRNTlevel;
 import static gov.lbl.superlu.Dlu.printf;
 import static gov.lbl.superlu.Dlu_util.print_int_vec;
 
+import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
+import static gov.lbl.superlu.Dlu_pmemory.intCalloc;
 
 
 public class Dlu_qrnzcnt {
@@ -157,8 +159,10 @@ public class Dlu_qrnzcnt {
 	    nchild = intMalloc(neqns + 1);    /* length n+1 */
 	    prvnbr = intMalloc(neqns);
 	    fnz_hadj   = intMalloc(adjlen + 2*neqns + 1);
-	    hadj_begin = fnz_hadj + adjlen;        /* neqns+1 */
-	    hadj_end   = hadj_begin + neqns + 1;   /* neqns */
+	    hadj_begin = fnz_hadj;        /* neqns+1 */
+	    int hadj_begin_offset = adjlen;
+	    hadj_end   = hadj_begin;   /* neqns */
+	    int hadj_end_offset = hadj_begin_offset + neqns + 1;
 	    fnz        = set;    /* aliasing for the time being */
 	    marker     = prvlf;  /*     "    "    "             */
 
@@ -226,11 +230,11 @@ public class Dlu_qrnzcnt {
 	}
 
 	    /* Set up fnz_hadj[*] structure. */
-	    hadj_begin[0] = 0;
+	    hadj_begin[hadj_begin_offset+0] = 0;
 	    for (k = 0; k < neqns; ++k) {
 		temp = 0;
 		oldnbr = perm[k];
-		hadj_end[k] = hadj_begin[k];
+		hadj_end[hadj_end_offset+k] = hadj_begin[hadj_begin_offset+k];
 		for (j = xadj[oldnbr]; j < xadj[oldnbr+1]; ++j) {
 	/*	    hinbr = invp[zfdperm[adjncy[j]]];*/
 		    hinbr = zfdperm[adjncy[j]];
@@ -239,20 +243,20 @@ public class Dlu_qrnzcnt {
 			/* ----------------------------------
 			   filtering k itself and duplicates
 			   ---------------------------------- */
-			fnz_hadj[hadj_end[jstrt]] = k;
-			++hadj_end[jstrt];
+			fnz_hadj[hadj_end[hadj_end_offset+jstrt]] = k;
+			++hadj_end[hadj_end_offset+jstrt];
 			marker[jstrt] = k;
 		    }
 		    if ( jstrt == k ) temp += rowcnt[hinbr];
 		}
-		hadj_begin[k+1] = hadj_begin[k] + temp;
+		hadj_begin[hadj_begin_offset+k+1] = hadj_begin[hadj_begin_offset+k] + temp;
 	    }
 
 	if (CHK_NZCNT) {
 	    printf("%8s%8s\n", "k", "hadj");
 	    for (k = 0; k < neqns; ++k) {
 		printf("%8d", k);
-		for (j = hadj_begin[k]; j < hadj_end[k]; ++j)
+		for (j = hadj_begin[hadj_begin_offset+k]; j < hadj_end[hadj_end_offset+k]; ++j)
 		    printf("%8d", fnz_hadj[j]);
 		printf("\n");
 	    }
@@ -301,8 +305,8 @@ public class Dlu_qrnzcnt {
 
 		lflag  = 0;
 		ifdesc = fdesc[lownbr];
-		jstrt  = hadj_begin[lownbr];
-		jstop  = hadj_end[lownbr];
+		jstrt  = hadj_begin[hadj_begin_offset+lownbr];
+		jstop  = hadj_end[hadj_end_offset+lownbr];
 		/*   -----------------------------------------------
 	             FOR EACH ``HIGH NEIGHBOR'', HINBR OF LOWNBR ...
 	             ----------------------------------------------- */

@@ -16,6 +16,7 @@ import static gov.lbl.superlu.Dlu.printf;
 
 public class Dlu_pxgstrf_mark_busy_descends {
 
+	@SuppressWarnings("unused")
 	static
 	void
 	pxgstrf_mark_busy_descends(int pnum, int jcol, int etree[],
@@ -87,7 +88,7 @@ public class Dlu_pxgstrf_mark_busy_descends {
 		       contains column "bcol-1" */
 	if (false) {
 		    if ( pxgstrf_shared.spin_locks[bcol_reg] != 0 ) /* WORSE PERFORMANCE!! */
-			await( &pxgstrf_shared.spin_locks[bcol_reg] );
+			await( pxgstrf_shared.spin_locks[bcol_reg] );
 	}
 		    xsup = Glu.xsup;
 		    fsupc = SUPER_FSUPC( xsup, Glu.supno[bcol_reg-1] );

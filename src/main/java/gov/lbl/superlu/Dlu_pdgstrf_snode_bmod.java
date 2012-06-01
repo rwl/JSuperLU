@@ -1,11 +1,11 @@
 package gov.lbl.superlu;
 
-import org.netlib.blas.BLAS;
-
 import gov.lbl.superlu.Dlu_pdsp_defs.GlobalLU_t;
 import gov.lbl.superlu.Dlu_slu_mt_util.Gstat_t;
 
 import static gov.lbl.superlu.Dlu.USE_VENDOR_BLAS;
+import static gov.lbl.superlu.Dlu.dgemv;
+import static gov.lbl.superlu.Dlu.dtrsv;
 
 import static gov.lbl.superlu.Dlu_dmyblas2.dlsolve;
 import static gov.lbl.superlu.Dlu_dmyblas2.dmatvec;
@@ -85,16 +85,15 @@ public class Dlu_pdgstrf_snode_bmod {
 		ops[GEMV] += 2 * nrow * nsupc;    */
 
 	if (USE_VENDOR_BLAS) {
-		BLAS blas = BLAS.getInstance();
 
-		blas.dtrsv( "L", "N", "U", &nsupc, &lusup[luptr], &nsupr,
-		      &lusup[ufirst], &incx );
-		blas.dgemv( "N", &nrow, &nsupc, &alpha, &lusup[luptr+nsupc], &nsupr,
-			&lusup[ufirst], &incx, &beta, &lusup[ufirst+nsupc], &incy );
+		dtrsv( "L", "N", "U", nsupc, lusup, luptr, nsupr,
+		      lusup, ufirst, incx );
+		dgemv( "N", nrow, nsupc, alpha, lusup, luptr+nsupc, nsupr,
+			lusup, ufirst, incx, beta, lusup, ufirst+nsupc, incy );
 	} else {
-		dlsolve ( nsupr, nsupc, &lusup[luptr], &lusup[ufirst] );
-		dmatvec ( nsupr, nrow, nsupc, &lusup[luptr+nsupc],
-			 &lusup[ufirst], &tempv[0] );
+		dlsolve ( nsupr, nsupc, lusup, luptr, lusup, ufirst );
+		dmatvec ( nsupr, nrow, nsupc, lusup, luptr+nsupc,
+			 lusup, ufirst, tempv, 0 );
 
 	        /* Scatter tempv[*] into lusup[*] */
 		iptr = ufirst + nsupc;

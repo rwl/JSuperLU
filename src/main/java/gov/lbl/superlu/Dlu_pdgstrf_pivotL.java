@@ -83,14 +83,17 @@ public class Dlu_pdgstrf_pivotL {
 	    nsupc      = jcol - fsupc;	        /* excluding jcol; nsupc >= 0 */
 	    lptr       = Glu.xlsub[fsupc];
 	    nsupr      = Glu.xlsub_end[fsupc] - lptr;
-	    lu_sup_ptr = &lusup[xlusup[fsupc]];	/* start of the current supernode */
-	    lu_col_ptr = &lusup[xlusup[jcol]];	/* start of jcol in the supernode */
-	    lsub_ptr   = &lsub[lptr];	/* start of row indices of the supernode */
+	    lu_sup_ptr = lusup;	/* start of the current supernode */
+	    int lu_sup_ptr_offset = xlusup[fsupc];
+	    lu_col_ptr = lusup;	/* start of jcol in the supernode */
+	    int lu_col_ptr_offset = xlusup[jcol];
+	    lsub_ptr   = lsub;	/* start of row indices of the supernode */
+	    int lsub_ptr_offset = lptr;
 
 	if (CHK_PIVOT) {
 	    printf("Before cdiv: col %d\n", jcol);
 	    for (k = nsupc; k < nsupr; k++)
-		printf("  lu[%d] %f\n", lsub_ptr[k], lu_col_ptr[k]);
+		printf("  lu[%d] %f\n", lsub_ptr[lsub_ptr_offset+k], lu_col_ptr[lu_col_ptr_offset+k]);
 	}
 
 	    /* Determine the largest abs numerical value for partial pivoting;
@@ -102,13 +105,13 @@ public class Dlu_pdgstrf_pivotL {
 	    diag = EMPTY;
 	    old_pivptr = nsupc;
 	    for (isub = nsupc; isub < nsupr; ++isub) {
-	        rtemp = fabs (lu_col_ptr[isub]);
+	        rtemp = fabs (lu_col_ptr[lu_col_ptr_offset+isub]);
 		if ( rtemp > pivmax ) {
 		    pivmax = rtemp;
 		    pivptr = isub;
 		}
-		if ( usepr[0] == YES && lsub_ptr[isub] == pivrow[0] ) old_pivptr = isub;
-		if ( lsub_ptr[isub] == diagind ) diag = isub;
+		if ( usepr[0] == YES && lsub_ptr[lsub_ptr_offset+isub] == pivrow[0] ) old_pivptr = isub;
+		if ( lsub_ptr[lsub_ptr_offset+isub] == diagind ) diag = isub;
 	    }
 
 	    /* Test for singularity */
@@ -124,7 +127,7 @@ public class Dlu_pdgstrf_pivotL {
 
 	    /* Choose appropriate pivotal element by our policy. */
 	    if ( usepr[0] == YES ) {
-	        rtemp = fabs (lu_col_ptr[old_pivptr]);
+	        rtemp = fabs (lu_col_ptr[lu_col_ptr_offset+old_pivptr]);
 		if ( rtemp != 0.0 && rtemp >= thresh )
 		    pivptr = old_pivptr;
 		else
@@ -133,10 +136,10 @@ public class Dlu_pdgstrf_pivotL {
 	    if ( usepr[0] == NO ) {
 		/* Can we use diagonal as pivot? */
 		if ( diag >= 0 ) { /* diagonal exists */
-	            rtemp = fabs (lu_col_ptr[diag]);
+	            rtemp = fabs (lu_col_ptr[lu_col_ptr_offset+diag]);
 	            if ( rtemp != 0.0 && rtemp >= thresh ) pivptr = diag;
 		}
-		pivrow[0] = lsub_ptr[pivptr];
+		pivrow[0] = lsub_ptr[lsub_ptr_offset+pivptr];
 	    }
 
 	    /* Record pivot row */
@@ -145,9 +148,9 @@ public class Dlu_pdgstrf_pivotL {
 
 	    /* Interchange row subscripts */
 	    if ( pivptr != nsupc ) {
-		itemp = lsub_ptr[pivptr];
-		lsub_ptr[pivptr] = lsub_ptr[nsupc];
-		lsub_ptr[nsupc] = itemp;
+		itemp = lsub_ptr[lsub_ptr_offset+pivptr];
+		lsub_ptr[lsub_ptr_offset+pivptr] = lsub_ptr[lsub_ptr_offset+nsupc];
+		lsub_ptr[lsub_ptr_offset+nsupc] = itemp;
 
 		/* Interchange numerical values as well, for the whole supernode,
 		 * such that L is indexed the same way as A.
@@ -155,9 +158,9 @@ public class Dlu_pdgstrf_pivotL {
 		k = 0;
 		for (icol = 0; icol <= nsupc; ++icol, k += nsupr) {
 		    itemp = pivptr + k;
-		    temp = lu_sup_ptr[itemp];
-		    lu_sup_ptr[itemp] = lu_sup_ptr[nsupc + k];
-		    lu_sup_ptr[nsupc + k] = temp;
+		    temp = lu_sup_ptr[lu_sup_ptr_offset+itemp];
+		    lu_sup_ptr[lu_sup_ptr_offset+itemp] = lu_sup_ptr[lu_sup_ptr_offset+nsupc + k];
+		    lu_sup_ptr[lu_sup_ptr_offset+nsupc + k] = temp;
 		}
 	    } /* if */
 
@@ -166,14 +169,14 @@ public class Dlu_pdgstrf_pivotL {
 	/*    ops[FACT] += nsupr - nsupc;*/
 	    Gstat.procstat[pnum].fcops += nsupr - nsupc;
 
-	    temp = 1.0 / lu_col_ptr[nsupc];
+	    temp = 1.0 / lu_col_ptr[lu_col_ptr_offset+nsupc];
 	    for (k = nsupc+1; k < nsupr; k++)
-	        lu_col_ptr[k] *= temp;
+	        lu_col_ptr[lu_col_ptr_offset+k] *= temp;
 
 	if (CHK_PIVOT) {
 	    printf("After cdiv: col %d\n", jcol);
 	    for (k = nsupc; k < nsupr; k++)
-		printf("  lu[%d] %f\n", lsub_ptr[k], lu_col_ptr[k]);
+		printf("  lu[%d] %f\n", lsub_ptr[lsub_ptr_offset+k], lu_col_ptr[lu_col_ptr_offset+k]);
 	}
 
 	    return 0;

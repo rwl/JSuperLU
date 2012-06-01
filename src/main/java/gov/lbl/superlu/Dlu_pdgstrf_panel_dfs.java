@@ -107,7 +107,9 @@ public class Dlu_pdgstrf_panel_dfs {
 	    int       marker1[];	   /* marker1[jj] == jcol if vertex jj was visited
 				      by a previous column within this panel.   */
 	    int       repfnz_col[]; /* start of each column in the panel */
+	    int repfnz_col_offset;
 	    double    dense_col[];  /* start of each column in the panel */
+	    int dense_col_offset;
 	    int[]       xsup, xsup_end, supno, lsub, xlsub, xlsub_end;
 
 	    int       col_marker[]; /* marker array of each column in the panel */
@@ -124,9 +126,12 @@ public class Dlu_pdgstrf_panel_dfs {
 	    asub       = Astore.rowind;
 	    xa_begin   = Astore.colbeg;
 	    xa_end     = Astore.colend;
-	    marker1    = marker + m;
+	    marker1    = marker;
+	    int marker1_offset = m;
 	    repfnz_col = repfnz;
+	    repfnz_col_offset = 0;
 	    dense_col  = dense;
+	    dense_col_offset = 0;
 	    nextp      = 0;
 	    nseg[0]    = 0;
 
@@ -140,15 +145,16 @@ public class Dlu_pdgstrf_panel_dfs {
 	     */
 	    for (jj = jcol; jj < jcol + w; ++jj, nextp += m) {
 		nextl_col = nextp;
-		col_marker = &spa_marker[nextp];
+		col_marker = spa_marker;
+		int col_marker_offset = nextp;
 
 		/*
 		 * For each nonz in A[*,jj] perform dfs ...
 		 */
 		for (k = xa_begin[jj]; k < xa_end[jj]; ++k) {
 		    krow = asub[k];
-		    dense_col[krow] = a[k];
-		    kmark = col_marker[krow];
+		    dense_col[dense_col_offset+krow] = a[k];
+		    kmark = col_marker[col_marker_offset+krow];
 
 		    /* if krow was visited before, go to the next nonzero */
 		    if ( kmark == jj ) continue;
@@ -156,7 +162,7 @@ public class Dlu_pdgstrf_panel_dfs {
 		    /*
 		     * For each unmarked nbr krow of jj ...
 		     */
-		    col_marker[krow] = jj;
+		    col_marker[col_marker_offset+krow] = jj;
 		    kperm = perm_r[krow];
 
 		    if ( kperm == EMPTY ) {
@@ -181,7 +187,7 @@ public class Dlu_pdgstrf_panel_dfs {
 
 			/* Here, krep cannot possibly be "busy" */
 			krep = SUPER_REP( xsup_end, supno[kperm] );
-			myfnz = repfnz_col[krep];
+			myfnz = repfnz_col[repfnz_col_offset+krep];
 
 	if (CHK_DFS) {
 	if (jj == BADCOL)
@@ -189,13 +195,13 @@ public class Dlu_pdgstrf_panel_dfs {
 		   pnum, jj, krep, SUPER_FSUPC(xsup_end, supno[krep]), krow, kperm, myfnz);
 	}
 			if ( myfnz != EMPTY ) {	/* Representative visited before */
-			    if ( myfnz > kperm ) repfnz_col[krep] = kperm;
+			    if ( myfnz > kperm ) repfnz_col[repfnz_col_offset+krep] = kperm;
 			    /* continue; */
 			} else {
 			    /* Otherwise, performs dfs starting from krep */
 			    parent[krep] = EMPTY;
-			    repfnz_col[krep] = kperm;
-			    if ( ispruned[krep] ) {
+			    repfnz_col[repfnz_col_offset+krep] = kperm;
+			    if ( ispruned[krep] != 0 ) {
 				if ( SINGLETON( xsup_end, xsup_end, supno[krep] ) )
 				    xdfs = xlsub_end[krep];
 				else xdfs = xlsub[krep];
@@ -226,10 +232,10 @@ public class Dlu_pdgstrf_panel_dfs {
 				    /* for each unmarked kchild of krep ... */
 				    kchild = lsub[xdfs];
 				    xdfs++;
-				    chmark = col_marker[kchild];
+				    chmark = col_marker[col_marker_offset+kchild];
 
 				    if ( chmark != jj ) { /* Not reached yet */
-					col_marker[kchild] = jj;
+					col_marker[col_marker_offset+kchild] = jj;
 					chperm = perm_r[kchild];
 
 					if ( chperm == EMPTY ) {
@@ -251,7 +257,7 @@ public class Dlu_pdgstrf_panel_dfs {
 	                                    }
 
 					    chrep = SUPER_REP( xsup_end, supno[chperm] );
-					    myfnz = repfnz_col[chrep];
+					    myfnz = repfnz_col[repfnz_col_offset+chrep];
 	if (DEBUG) {
 	if (jj == BADCOL)
 	    printf("(%d) pdgstrf_panel_dfs[3] %d, krep %d, Pr[kchild %d] %d, chrep %d, fsupc %d, myfnz %d\n",
@@ -260,15 +266,15 @@ public class Dlu_pdgstrf_panel_dfs {
 	}
 					    if ( myfnz != EMPTY ) {/* Visited before */
 						if ( myfnz > chperm )
-						    repfnz_col[chrep] = chperm;
+						    repfnz_col[repfnz_col_offset+chrep] = chperm;
 					    } else {
 						/* Cont. dfs at snode-rep of kchild */
 						xplore[krep] = xdfs;
 						xplore[m + krep] = maxdfs;
 						parent[chrep] = krep;
 						krep = chrep; /* Go deeper down G(L) */
-						repfnz_col[krep] = chperm;
-						if ( ispruned[krep] ) {
+						repfnz_col[repfnz_col_offset+krep] = chperm;
+						if ( ispruned[krep] != 0 ) {
 						    if ( SINGLETON( xsup_end, xsup_end, supno[krep] ) )
 							xdfs = xlsub_end[krep];
 						    else xdfs = xlsub[krep];
@@ -303,14 +309,14 @@ public class Dlu_pdgstrf_panel_dfs {
 				 *    "repfnz[krep]" may change later.)
 				 *    Backtrack dfs to its parent.
 				 */
-				if ( marker1[krep] != jcol ) {
+				if ( marker1[marker1_offset+krep] != jcol ) {
 				    segrep[nseg[0]] = krep;
 				    ++(nseg[0]);
-				    marker1[krep] = jcol;
+				    marker1[marker1_offset+krep] = jcol;
 	if (CHK_DFS) {
 	if (jj == BADCOL)
 	    printf("(%d) pdgstrf_panel_dfs(%d) repfnz[%d] %d added to top.list by jj %d\n",
-		   pnum, jj, krep, repfnz_col[krep], jj);
+		   pnum, jj, krep, repfnz_col[repfnz_col_offset+krep], jj);
 	}
 				}
 
@@ -344,14 +350,14 @@ public class Dlu_pdgstrf_panel_dfs {
 	int REPCOL = 0;
 	    krep = REPCOL;
 	    printf("(%d) pdgstrf_panel_dfs(end) w_lsub_end[jj=%d] %d, repfnz_col[%d] %d\n",
-		   pnum, jj, nextl_col - nextp, krep, repfnz_col[krep]);
-	    PrintInt10("lsub", nextl_col - nextp, panel_lsub[nextp]);
+		   pnum, jj, nextl_col - nextp, krep, repfnz_col[repfnz_col_offset+krep]);
+	    PrintInt10("lsub", nextl_col - nextp, panel_lsub, nextp);
 	}
 	}
 
 		w_lsub_end[jj-jcol] = nextl_col - nextp;
-		repfnz_col += m;
-	    dense_col += m;
+		repfnz_col_offset += m;
+		dense_col_offset += m;
 
 	    } /* for jj ... */
 

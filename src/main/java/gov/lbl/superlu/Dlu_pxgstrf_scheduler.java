@@ -1,6 +1,7 @@
 package gov.lbl.superlu;
 
 import gov.lbl.superlu.Dlu_pdsp_defs.pxgstrf_shared_t;
+import gov.lbl.superlu.Dlu_pxgstrf_synch.queue_t;
 import gov.lbl.superlu.Dlu_slu_mt_util.Gstat_t;
 
 import static gov.lbl.superlu.Dlu_slu_mt_util.EMPTY;
@@ -11,9 +12,13 @@ import static gov.lbl.superlu.Dlu_slu_mt_util.TOC;
 import static gov.lbl.superlu.Dlu_slu_mt_util.how_selected_t.DADPAN;
 import static gov.lbl.superlu.Dlu_slu_mt_util.how_selected_t.PIPE;
 import static gov.lbl.superlu.Dlu_slu_mt_util.how_selected_t.NOPIPE;
+
 import static gov.lbl.superlu.Dlu_pxgstrf_synch.lu_locks_t.SCHED_LOCK;
 import static gov.lbl.superlu.Dlu_pxgstrf_synch.pipe_state_t.BUSY;
 import static gov.lbl.superlu.Dlu_pxgstrf_synch.pipe_state_t.CANGO;
+import static gov.lbl.superlu.Dlu_pxgstrf_synch.pipe_state_t.CANPIPE;
+import static gov.lbl.superlu.Dlu_pxgstrf_synch.pipe_state_t.DONE;
+import static gov.lbl.superlu.Dlu_pxgstrf_synch.panel_t.TREE_DOMAIN;
 
 import static gov.lbl.superlu.Dlu.DOMAINS;
 import static gov.lbl.superlu.Dlu.PROFILE;
@@ -97,20 +102,23 @@ public class Dlu_pxgstrf_scheduler {
 	 *
 	 */
 
-	    int dad, dad_ukids, jcol, w, j;
+	    int dad = 0, dad_ukids, jcol, w, j = 0;
 	    int fb_cols[] = pxgstrf_shared.fb_cols;
-	    queue_t taskq[] = &pxgstrf_shared.taskq;
+	    queue_t taskq = pxgstrf_shared.taskq;
 	    Gstat_t Gstat = pxgstrf_shared.Gstat;
-	    double t;
+	    double[] t = new double[1];
 
 	    jcol = cur_pan[0];
 	    if ( jcol != EMPTY ) {
 	if (DOMAINS) {
-		if ( in_domain[jcol] == TREE_DOMAIN )
-		    dad = etree[jcol];
-		else
+		throw new UnsupportedOperationException();
+//		if ( in_domain[jcol] == TREE_DOMAIN )
+//		    dad = etree[jcol];
+//		else
+//			dad = DADPANEL(etree, pxgstrf_shared, jcol);
+	} else {
+		dad = DADPANEL(etree, pxgstrf_shared, jcol);
 	}
-		    dad = DADPANEL (jcol);
 	    }
 
 	    /* w_top = sp_ienv(1)/2;
@@ -119,7 +127,7 @@ public class Dlu_pxgstrf_scheduler {
 	if (PROFILE) {
 	    TIC(t);
 	}
-	    pthread_mutex_lock( pxgstrf_shared.lu_locks[SCHED_LOCK.ordinal()] );
+	    synchronized ( pxgstrf_shared.lu_locks[SCHED_LOCK.ordinal()] )
 
 	{   /* ---- START CRITICAL SECTION ---- */
 
@@ -132,14 +140,14 @@ public class Dlu_pxgstrf_scheduler {
 
 	if (DEBUG) {
 		printf("(%d) DONE %d in Scheduler(), dad %d, STATE %d, dad_ukids %d\n",
-		       pnum, jcol, dad, STATE(dad), dad_ukids);
+		       pnum, jcol, dad, STATE(pxgstrf_shared, dad), dad_ukids);
 	}
 
-		if ( dad_ukids == 0 && STATE( dad ) > BUSY.ordinal() ) { /* dad not started */
+		if ( dad_ukids == 0 && STATE(pxgstrf_shared, dad) > BUSY.ordinal() ) { /* dad not started */
 		    jcol = dad;
 	if (DEBUG) {
 		    printf("(%d) Scheduler[1] Got dad %d, STATE %d\n",
-			   pnum, jcol, STATE(dad));
+			   pnum, jcol, STATE(pxgstrf_shared, dad));
 	}
 	if (PROFILE) {
 		    ++(Gstat.panhows[DADPAN.ordinal()]);
@@ -154,13 +162,13 @@ public class Dlu_pxgstrf_scheduler {
 			} else {
 			    jcol = taskq.queue[taskq.head++];
 			    --taskq.count;
-			    if ( STATE( jcol ) >= CANGO.ordinal() ) { /* CANGO or CANPIPE */
+			    if ( STATE(pxgstrf_shared, jcol) >= CANGO.ordinal() ) { /* CANGO or CANPIPE */
 	if (DEBUG) {
 				printf("(%d) Dequeue[1] Got %d, STATE %d, Qcount %d\n",
-				       pnum, jcol, STATE(jcol), j);
+				       pnum, jcol, STATE(pxgstrf_shared, jcol), j);
 	}
 	if (PROFILE) {
-				if (STATE( jcol ) == CANGO.ordinal()) ++(Gstat.panhows[NOPIPE.ordinal()]);
+				if (STATE(pxgstrf_shared, jcol) == CANGO.ordinal()) ++(Gstat.panhows[NOPIPE.ordinal()]);
 				else ++(Gstat.panhows[PIPE.ordinal()]);
 	}
 			        break;
@@ -180,13 +188,13 @@ public class Dlu_pxgstrf_scheduler {
 		    } else {
 			jcol = taskq.queue[taskq.head++];
 			--taskq.count;
-			if ( STATE( jcol ) >= CANGO.ordinal() ) { /* CANGO or CANPIPE */
+			if ( STATE(pxgstrf_shared, jcol) >= CANGO.ordinal() ) { /* CANGO or CANPIPE */
 	if (DEBUG) {
 			    printf("(%d) Dequeue[2] Got %d, STATE %d, Qcount %d\n",
-				   pnum, jcol, STATE(jcol), j);
+				   pnum, jcol, STATE(pxgstrf_shared, jcol), j);
 	}
 	if (PROFILE) {
-			    if (STATE( jcol ) == CANGO.ordinal()) ++(Gstat.panhows[NOPIPE.ordinal()]);
+			    if (STATE(pxgstrf_shared, jcol) == CANGO.ordinal()) ++(Gstat.panhows[NOPIPE.ordinal()]);
 			    else ++(Gstat.panhows[PIPE.ordinal()]);
 	}
 			    break;
@@ -201,20 +209,23 @@ public class Dlu_pxgstrf_scheduler {
 	    if ( jcol != EMPTY ) {
 		    --pxgstrf_shared.tasks_remain;
 	if (DOMAINS) {
-		if ( in_domain[jcol] == TREE_DOMAIN ) {
-		    /* Dequeue the first descendant of this domain */
-		    *bcol = taskq.queue[taskq.head++];
-		    --taskq.count;
-		} else
+		throw new UnsupportedOperationException();
+//		if ( in_domain[jcol] == TREE_DOMAIN ) {
+//		    /* Dequeue the first descendant of this domain */
+//		    bcol[0] = taskq.queue[taskq.head++];
+//		    --taskq.count;
+//		} else
 	}
-		{
-		    STATE( jcol ) = BUSY;
+//		{
+		    //STATE(pxgstrf_shared, jcol) = BUSY;
+		    pxgstrf_shared.pan_status[jcol].state = BUSY;
 		    w = pxgstrf_shared.pan_status[jcol].size;
 
 		    for (j = jcol; j < jcol+w; ++j) pxgstrf_shared.spin_locks[j] = 1;
-		    dad = DADPANEL (jcol);
+		    dad = DADPANEL(etree, pxgstrf_shared, jcol);
 		    if ( dad < n && pxgstrf_shared.pan_status[dad].ukids == 1 ) {
-			STATE( dad ) = CANPIPE;
+			//STATE( dad ) = CANPIPE;
+			pxgstrf_shared.pan_status[dad].state = CANPIPE;
 			/*>> j = Enqueue(taskq, dad);*/
 			taskq.queue[taskq.tail++] = dad;
 			++taskq.count;
@@ -222,7 +233,7 @@ public class Dlu_pxgstrf_scheduler {
 			printf("(%d) Enqueue() %d's dad %d .CANPIPE, Qcount %d\n",
 			       pnum, jcol, dad, j);
 	}
-		    }
+//		    }
 
 	if (PROFILE) {
 		    Gstat.procstat[pnum].panels++;
@@ -233,9 +244,9 @@ public class Dlu_pxgstrf_scheduler {
 		    bcol[0] = fb_cols[jcol];
 	if (DEBUG) {
 		    printf("(%d) Scheduler[2] fb_cols[%d]=%d, STATE %d\n",
-			   pnum, jcol, bcol[0], STATE( bcol[0] ));
+			   pnum, jcol, bcol[0], STATE(pxgstrf_shared, bcol[0]));
 	}
-		    while ( STATE( bcol[0] ) == DONE ) bcol[0] = DADPANEL (*bcol);
+		    while ( STATE(pxgstrf_shared, bcol[0]) == DONE.ordinal() ) bcol[0] = DADPANEL(etree, pxgstrf_shared, bcol[0]);
 		    fb_cols[dad] = bcol[0];
 
 		} /* else regular_panel */
@@ -251,10 +262,8 @@ public class Dlu_pxgstrf_scheduler {
 
 	} /* ---- END CRITICAL SECTION ---- */
 
-	    pthread_mutex_unlock( pxgstrf_shared.lu_locks[SCHED_LOCK.ordinal()] );
-
 	if (PROFILE) {
-	    Gstat.procstat[pnum].cs_time += SuperLU_timer_() - t;
+	    Gstat.procstat[pnum].cs_time += SuperLU_timer_() - t[0];
 	}
 
 	    return;
@@ -265,7 +274,7 @@ public class Dlu_pxgstrf_scheduler {
 	static
 	void
 	Preorder(final int pnum, final int n, final int etree[], int cur_pan[],
-	         queue_t taskq[], int fb_cols[], int bcol[],
+	         queue_t taskq, int fb_cols[], int bcol[],
 		 pxgstrf_shared_t pxgstrf_shared)
 	{
 	    int w, dad, dad_ukids;
@@ -280,7 +289,7 @@ public class Dlu_pxgstrf_scheduler {
 	    }
 	} else { /* Breadth-first bottom up */
 	    if ( cur_pan[0] != EMPTY ) {
-		dad = DADPANEL (cur_pan[0]);
+		dad = DADPANEL(etree, pxgstrf_shared, cur_pan[0]);
 		dad_ukids = --pxgstrf_shared.pan_status[dad].ukids;
 		if ( dad_ukids == 0 ) {
 		    taskq.queue[taskq.tail++] = dad;

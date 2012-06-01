@@ -210,7 +210,7 @@ public class Dlu_dgstrs {
 			    int rhs_work_offset = bptr;
 			    dlsolve (nsupr, nsupc, Lval, luptr, rhs_work, rhs_work_offset+fsupc);
 			    dmatvec (nsupr, nrow, nsupc, Lval, luptr+nsupc,
-				     rhs_work, rhs_work_offset+fsupc, work);
+				     rhs_work, rhs_work_offset+fsupc, work, 0);
 
 			    iptr = istart + nsupc;
 			    for (i = 0; i < nrow; i++) {

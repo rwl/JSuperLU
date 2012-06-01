@@ -54,7 +54,9 @@ public class Dlu_pdgstrf_snode_dfs {
 	    supno                 = Glu.supno;
 	    xlsub                 = Glu.xlsub;
 	    xlsub_end             = Glu.xlsub_end;
-	    nsuper = NewNsuper(pnum, pxgstrf_shared, Glu.nsuper);
+	    int[] nsuper_ = new int[1];
+	    nsuper = NewNsuper(pnum, pxgstrf_shared, nsuper_);
+	    Glu.nsuper = nsuper_[0];
 	    Glu.xsup[nsuper]     = jcol;
 	    Glu.xsup_end[nsuper] = kcol + 1;
 

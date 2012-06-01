@@ -228,7 +228,8 @@ public class Dlu_dmyblas2 {
 		int M_offset,
 		double vec[],	/* in */
 		int vec_offset,
-		double Mxvec[]	/* in/out */
+		double Mxvec[],	/* in/out */
+		int Mxvec_offset
 		)
 	{
 	    double vi0, vi1, vi2, vi3, vi4, vi5, vi6, vi7;
@@ -272,7 +273,7 @@ public class Dlu_dmyblas2 {
 		vi7 = vec[vec_offset+firstcol++];
 
 		for (k = 0; k < nrow; k++) {
-		    Mxvec[k] += vi0 * Mki0[Mki0_offset] + vi1 * Mki1[Mki1_offset]
+		    Mxvec[Mxvec_offset+k] += vi0 * Mki0[Mki0_offset] + vi1 * Mki1[Mki1_offset]
 			      + vi2 * Mki2[Mki2_offset] + vi3 * Mki3[Mki3_offset]
 			      + vi4 * Mki4[Mki4_offset] + vi5 * Mki5[Mki5_offset]
 			      + vi6 * Mki6[Mki6_offset] + vi7 * Mki7[Mki7_offset];
@@ -305,7 +306,7 @@ public class Dlu_dmyblas2 {
 		vi2 = vec[vec_offset+firstcol++];
 		vi3 = vec[vec_offset+firstcol++];
 		for (k = 0; k < nrow; k++) {
-		    Mxvec[k] += vi0 * Mki0[Mki0_offset] + vi1 * Mki1[Mki1_offset]
+		    Mxvec[Mxvec_offset+k] += vi0 * Mki0[Mki0_offset] + vi1 * Mki1[Mki1_offset]
 			      + vi2 * Mki2[Mki2_offset] + vi3 * Mki3[Mki3_offset] ;
 		    Mki0_offset++;
 		    Mki1_offset++;
@@ -322,7 +323,7 @@ public class Dlu_dmyblas2 {
 	 	Mki0_offset = M0_offset;
 		vi0 = vec[vec_offset+firstcol++];
 		for (k = 0; k < nrow; k++) {
-		    Mxvec[k] += vi0 * Mki0[Mki0_offset];
+		    Mxvec[Mxvec_offset+k] += vi0 * Mki0[Mki0_offset];
 		    Mki0_offset++;
 		}
 
