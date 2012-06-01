@@ -29,6 +29,11 @@ import static gov.lbl.superlu.Dlu.SCATTER_FOUND;
 
 import static gov.lbl.superlu.Dlu_await.await;
 
+import static gov.lbl.superlu.Dlu_pdgstrf_bmod2D_mv2.pdgstrf_bmod2D_mv2;
+import static gov.lbl.superlu.Dlu_pdgstrf_bmod2D.pdgstrf_bmod2D;
+import static gov.lbl.superlu.Dlu_pdgstrf_bmod1D_mv2.pdgstrf_bmod1D_mv2;
+import static gov.lbl.superlu.Dlu_pdgstrf_bmod1D.pdgstrf_bmod1D;
+
 
 public class Dlu_pdgstrf_panel_bmod {
 
@@ -116,7 +121,7 @@ public class Dlu_pdgstrf_panel_bmod {
 	    t1 = new double[1];
 	    t2 = new double[1];
 
-	    float pmod, max_child_eft = 0, sum_pmod = 0, min_desc_eft = 0;
+	    float pmod = 0, max_child_eft = 0, sum_pmod = 0, min_desc_eft = 0;
 	    float pmod_eft;
 	    int   kid, ndesc = 0;
 

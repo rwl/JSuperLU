@@ -30,6 +30,7 @@ public class Dlu {
 	public static boolean DOPRINT = false;
 	public static boolean CHK_PRUNE = false;
 	public static boolean COMPRESS_LUSUP = false;
+	public static boolean TIMING = false;
 
 	public static void printf(String format, Object... args) {
 		System.out.printf(format, args);
