@@ -337,111 +337,133 @@ public class Dlu_dmyblas2 {
 	 *        y0 = y0 + A * x0
 	 *        y1 = y1 + A * x1
 	 */
-//	static
-//	void dmatvec2 (
-//	               int lda,     /* leading dimension of A */
-//	               int m,
-//	               int n,
-//	               double A[],   /* in - size m-by-n */
-//	               double x0[],  /* in - size n-by-1 */
-//	               double x1[],  /* in - size n-by-1 */
-//	               double y0[],  /* out - size n-by-1 */
-//	               double y1[]   /* out - size n-by-1 */
-//	               )
-//
-//	{
-//	    double v00, v10, v20, v30, v40, v50, v60, v70,
-//	                    v01, v11, v21, v31, v41, v51, v61, v71;
-//	    double t0, t1, t2, t3, t4, t5, t6, t7;
-//	    double f0, f1;
-//	    double[] Mki0, Mki1, Mki2, Mki3, Mki4, Mki5, Mki6, Mki7;
-//	    int firstcol = 0;
-//	    double M0[];
-//	    int k;
-//
-//	    M0 = &A[0];
-//
-//	    while ( firstcol < n - 7 ) {        /* Do 8 columns */
-//
-//	        Mki0 = M0;
-//	        Mki1 = Mki0 + lda;
-//	        Mki2 = Mki1 + lda;
-//	        Mki3 = Mki2 + lda;
-//	        Mki4 = Mki3 + lda;
-//	        Mki5 = Mki4 + lda;
-//	        Mki6 = Mki5 + lda;
-//	        Mki7 = Mki6 + lda;
-//
-//	        v00 = x0[firstcol];   v01 = x1[firstcol++];
-//	        v10 = x0[firstcol];   v11 = x1[firstcol++];
-//	        v20 = x0[firstcol];   v21 = x1[firstcol++];
-//	        v30 = x0[firstcol];   v31 = x1[firstcol++];
-//	        v40 = x0[firstcol];   v41 = x1[firstcol++];
-//	        v50 = x0[firstcol];   v51 = x1[firstcol++];
-//	        v60 = x0[firstcol];   v61 = x1[firstcol++];
-//	        v70 = x0[firstcol];   v71 = x1[firstcol++];
-//
-//	        for (k = 0; k < m; k++) {
-//	            f0 = y0[k];
-//	            f1 = y1[k];
-//	            t0 = Mki0[k];  f0 += v00 * t0;  f1 += v01 * t0;
-//	            t1 = Mki1[k];  f0 += v10 * t1;  f1 += v11 * t1;
-//	            t2 = Mki2[k];  f0 += v20 * t2;  f1 += v21 * t2;
-//	            t3 = Mki3[k];  f0 += v30 * t3;  f1 += v31 * t3;
-//	            t4 = Mki4[k];  f0 += v40 * t4;  f1 += v41 * t4;
-//	            t5 = Mki5[k];  f0 += v50 * t5;  f1 += v51 * t5;
-//	            t6 = Mki6[k];  f0 += v60 * t6;  f1 += v61 * t6;
-//	            t7 = Mki7[k];  f0 += v70 * t7;  f1 += v71 * t7;
-//	            y0[k] = f0;
-//	            y1[k] = f1;
-//	        }
-//
-//	        M0 += 8 * lda;
-//	    }
-//
-//	    while ( firstcol < n - 3 ) {        /* Do 4 columns */
-//	        Mki0 = M0;
-//	        Mki1 = Mki0 + lda;
-//	        Mki2 = Mki1 + lda;
-//	        Mki3 = Mki2 + lda;
-//
-//	        v00 = x0[firstcol];   v01 = x1[firstcol++];
-//	        v10 = x0[firstcol];   v11 = x1[firstcol++];
-//	        v20 = x0[firstcol];   v21 = x1[firstcol++];
-//	        v30 = x0[firstcol];   v31 = x1[firstcol++];
-//
-//	        for (k = 0; k < m; k++) {
-//	            f0 = y0[k];
-//	            f1 = y1[k];
-//	            t0 = Mki0[k];  f0 += v00 * t0;  f1 += v01 * t0;
-//	            t1 = Mki1[k];  f0 += v10 * t1;  f1 += v11 * t1;
-//	            t2 = Mki2[k];  f0 += v20 * t2;  f1 += v21 * t2;
-//	            t3 = Mki3[k];  f0 += v30 * t3;  f1 += v31 * t3;
-//	            y0[k] = f0;
-//	            y1[k] = f1;
-//	        }
-//
-//	        M0 += 4 * lda;
-//
-//	    }
-//
-//	    while ( firstcol < n ) {            /* Do 1 column */
-//	        Mki0 = M0;
-//	        v00 = x0[firstcol];   v01 = x1[firstcol++];
-//
-//	        for (k = 0; k < m; k++) {
-//	            f0 = y0[k];
-//	            f1 = y1[k];
-//	            t0 = Mki0[k];
-//	            f0 += v00 * t0;
-//	            f1 += v01 * t0;
-//	            y0[k] = f0;
-//	            y1[k] = f1;
-//	        }
-//
-//	        M0 += lda;
-//	    }
-//
-//	}
+	static
+	void dmatvec2 (
+	               int lda,     /* leading dimension of A */
+	               int m,
+	               int n,
+	               double A[],   /* in - size m-by-n */
+	               int A_offset,
+	               double x0[],  /* in - size n-by-1 */
+	               int x0_offset,
+	               double x1[],  /* in - size n-by-1 */
+	               int x1_offset,
+	               double y0[],  /* out - size n-by-1 */
+	               int y0_offset,
+	               double y1[],   /* out - size n-by-1 */
+	               int y1_offset
+	               )
+
+	{
+	    double v00, v10, v20, v30, v40, v50, v60, v70,
+	                    v01, v11, v21, v31, v41, v51, v61, v71;
+	    double t0, t1, t2, t3, t4, t5, t6, t7;
+	    double f0, f1;
+	    double[] Mki0, Mki1, Mki2, Mki3, Mki4, Mki5, Mki6, Mki7;
+	    int Mki0_offset, Mki1_offset, Mki2_offset, Mki3_offset,
+	    Mki4_offset, Mki5_offset, Mki6_offset, Mki7_offset;
+	    int firstcol = 0;
+	    double M0[];
+	    int M0_offset;
+	    int k;
+
+	    M0 = A;
+	    M0_offset = A_offset;
+
+	    while ( firstcol < n - 7 ) {        /* Do 8 columns */
+
+	        Mki0 = M0;
+	        Mki0_offset = M0_offset;
+	        Mki1 = Mki0;
+	        Mki1_offset = Mki0_offset + lda;
+	        Mki2 = Mki1;
+	        Mki2_offset = Mki1_offset + lda;
+	        Mki3 = Mki2;
+	        Mki3_offset = Mki2_offset + lda;
+	        Mki4 = Mki3;
+	        Mki4_offset = Mki3_offset + lda;
+	        Mki5 = Mki4;
+	        Mki5_offset = Mki4_offset + lda;
+	        Mki6 = Mki5;
+	        Mki6_offset = Mki5_offset + lda;
+	        Mki7 = Mki6;
+	        Mki7_offset = Mki6_offset + lda;
+
+	        v00 = x0[x0_offset+firstcol];   v01 = x1[x1_offset+firstcol++];
+	        v10 = x0[x0_offset+firstcol];   v11 = x1[x1_offset+firstcol++];
+	        v20 = x0[x0_offset+firstcol];   v21 = x1[x1_offset+firstcol++];
+	        v30 = x0[x0_offset+firstcol];   v31 = x1[x1_offset+firstcol++];
+	        v40 = x0[x0_offset+firstcol];   v41 = x1[x1_offset+firstcol++];
+	        v50 = x0[x0_offset+firstcol];   v51 = x1[x1_offset+firstcol++];
+	        v60 = x0[x0_offset+firstcol];   v61 = x1[x1_offset+firstcol++];
+	        v70 = x0[x0_offset+firstcol];   v71 = x1[x1_offset+firstcol++];
+
+	        for (k = 0; k < m; k++) {
+	            f0 = y0[y0_offset+k];
+	            f1 = y1[y1_offset+k];
+	            t0 = Mki0[Mki0_offset+k];  f0 += v00 * t0;  f1 += v01 * t0;
+	            t1 = Mki1[Mki1_offset+k];  f0 += v10 * t1;  f1 += v11 * t1;
+	            t2 = Mki2[Mki2_offset+k];  f0 += v20 * t2;  f1 += v21 * t2;
+	            t3 = Mki3[Mki3_offset+k];  f0 += v30 * t3;  f1 += v31 * t3;
+	            t4 = Mki4[Mki4_offset+k];  f0 += v40 * t4;  f1 += v41 * t4;
+	            t5 = Mki5[Mki5_offset+k];  f0 += v50 * t5;  f1 += v51 * t5;
+	            t6 = Mki6[Mki6_offset+k];  f0 += v60 * t6;  f1 += v61 * t6;
+	            t7 = Mki7[Mki7_offset+k];  f0 += v70 * t7;  f1 += v71 * t7;
+	            y0[y0_offset+k] = f0;
+	            y1[y1_offset+k] = f1;
+	        }
+
+	        M0_offset += 8 * lda;
+	    }
+
+	    while ( firstcol < n - 3 ) {        /* Do 4 columns */
+	        Mki0 = M0;
+	        Mki0_offset = M0_offset;
+	        Mki1 = Mki0;
+	        Mki1_offset = Mki0_offset + lda;
+	        Mki2 = Mki1;
+	        Mki2_offset = Mki1_offset + lda;
+	        Mki3 = Mki2;
+	        Mki3_offset = Mki2_offset + lda;
+
+	        v00 = x0[x0_offset+firstcol];   v01 = x1[x1_offset+firstcol++];
+	        v10 = x0[x0_offset+firstcol];   v11 = x1[x1_offset+firstcol++];
+	        v20 = x0[x0_offset+firstcol];   v21 = x1[x1_offset+firstcol++];
+	        v30 = x0[x0_offset+firstcol];   v31 = x1[x1_offset+firstcol++];
+
+	        for (k = 0; k < m; k++) {
+	            f0 = y0[y0_offset+k];
+	            f1 = y1[y1_offset+k];
+	            t0 = Mki0[Mki0_offset+k];  f0 += v00 * t0;  f1 += v01 * t0;
+	            t1 = Mki1[Mki1_offset+k];  f0 += v10 * t1;  f1 += v11 * t1;
+	            t2 = Mki2[Mki2_offset+k];  f0 += v20 * t2;  f1 += v21 * t2;
+	            t3 = Mki3[Mki3_offset+k];  f0 += v30 * t3;  f1 += v31 * t3;
+	            y0[y0_offset+k] = f0;
+	            y1[y1_offset+k] = f1;
+	        }
+
+	        M0_offset += 4 * lda;
+
+	    }
+
+	    while ( firstcol < n ) {            /* Do 1 column */
+	        Mki0 = M0;
+	        Mki0_offset = M0_offset;
+	        v00 = x0[x0_offset+firstcol];   v01 = x1[x1_offset+firstcol++];
+
+	        for (k = 0; k < m; k++) {
+	            f0 = y0[y0_offset+k];
+	            f1 = y1[y1_offset+k];
+	            t0 = Mki0[Mki0_offset+k];
+	            f0 += v00 * t0;
+	            f1 += v01 * t0;
+	            y0[y0_offset+k] = f0;
+	            y1[y1_offset+k] = f1;
+	        }
+
+	        M0_offset += lda;
+	    }
+
+	}
 
 }
