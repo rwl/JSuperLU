@@ -42,23 +42,17 @@ public class Dlu_pdlinsol {
 	public static final int nprocs = Runtime.getRuntime().availableProcessors();
 
 	public static final int nrhs              = 1;
-	public static final trans_t trans             = NOTRANS;
-	public static final int n                 = 1000;
+	public static final trans_t trans         = NOTRANS;
 	public static final int b                 = 1;
 	public static final int panel_size        = sp_ienv(1);
 	public static final int relax             = sp_ienv(2);
 	public static final int maxsup            = sp_ienv(3);
 
-	static boolean HB = true;
-	static boolean DEN = false;
-	static boolean BAND = false;
-	static boolean BD = false;
 
-	public static void main(String[] args) {
+	public static void pdlinsol(int m, int n, int nnz, double a[],
+		      int asub[], int xa[]) {
 		SuperMatrix   A = new SuperMatrix();
 	    NCformat Astore;
-	    double   a[];
-	    int      asub[], xa[];
 	    int      perm_r[]; /* row permutations from partial pivoting */
 	    int      perm_c[]; /* column permutation vector */
 	    SuperMatrix   L = new SuperMatrix();       /* factor L */
@@ -66,37 +60,12 @@ public class Dlu_pdlinsol {
 	    SuperMatrix   U = new SuperMatrix();       /* factor U */
 	    NCPformat Ustore;
 	    SuperMatrix   B = new SuperMatrix();
-	    int      ldx, info[], m, nnz;
+	    int      ldx, info[];
 	    info = new int[1];
 	    int      permc_spec;
 	    double   xact[], rhs[];
-	    superlu_memusage_t   superlu_memusage;
-//	    void   parse_command_line();
+	    superlu_memusage_t   superlu_memusage = new superlu_memusage_t();
 
-
-//	    parse_command_line(argc, argv, &nprocs, &n, &b, &panel_size,
-//			       &relax, &maxsup);
-
-
-//	if ( DEN ) {
-//	    m = n;
-//	    nnz = n * n;
-//	    dband(n, n, nnz, &a, &asub, &xa);
-//	} else if ( BAND ) {
-//	    m = n;
-//	    nnz = (2*b+1) * n;
-//	    dband(n, b, nnz, &a, &asub, &xa);
-//	} else if ( BD ) {
-//	    nb = 5;
-//	    bs = 200;
-//	    m = n = bs * nb;
-//	    nnz = bs * bs * nb;
-//	    dblockdiag(nb, bs, nnz, &a, &asub, &xa);
-//	} else if ( HB ) {
-//	    dreadhb(&m, &n, &nnz, &a, &asub, &xa);
-//	} else {
-//	    dreadmt(&m, &n, &nnz, &a, &asub, &xa);
-//	}
 
 	    dCreate_CompCol_Matrix(A, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
 	    Astore = (NCformat) A.Store;
