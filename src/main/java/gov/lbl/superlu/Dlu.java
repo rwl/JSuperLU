@@ -125,17 +125,19 @@ public class Dlu {
 
 		BLAS blas = BLAS.getInstance();
 
+		int xl;
 		double[] A, X;
 
 		A = new double[lda*n];
 		System.arraycopy(a, a_offset, A, 0, lda*n);
 
-		X = new double[];
-		System.arraycopy(x, x_offset, X, 0, length);
+		xl = x.length - x_offset;
+		X = new double[xl];
+		System.arraycopy(x, x_offset, X, 0, xl);
 
 		blas.dtrsv(uplo, trans, diag, n, A, lda, X, incx);
 
-		System.arraycopy(X, 0, x, x_offset, length);
+		System.arraycopy(X, 0, x, x_offset, xl);
 	}
 
 	public static void dgemv(String trans, int m, int n, double alpha,
@@ -144,9 +146,23 @@ public class Dlu {
 
 		BLAS blas = BLAS.getInstance();
 
+		int xl, yl;
 		double[] A, X, Y;
 
+		A = new double[lda*n];
+		System.arraycopy(a, a_offset, A, 0, lda*n);
+
+		xl = x.length - x_offset;
+		X = new double[xl];
+		System.arraycopy(x, x_offset, X, 0, xl);
+
+		yl = y.length - y_offset;
+		Y = new double[yl];
+		System.arraycopy(y, y_offset, Y, 0, yl);
+
 		blas.dgemv(trans, m, n, alpha, A, lda, X, incx, beta, Y, incy);
+
+		System.arraycopy(Y, 0, y, y_offset, yl);
 	}
 
 

@@ -434,9 +434,9 @@ public class Dlu_pdmemory {
 	    int    maxsuper = sp_ienv(3),
 	           rowblk   = sp_ienv(4);
 
-	    isize = (2*panel_size + 5 + NO_MARKER) * n * 32/*sizeof(int)*/;
-	    dsize = (n * panel_size +
-		     NUM_TEMPV(n,panel_size,maxsuper,rowblk)) * 64/*sizeof(double)*/;
+	    isize = (2*panel_size + 5 + NO_MARKER) * n/* * 32*//*sizeof(int)*/;
+	    dsize = (n * panel_size/* +
+		     NUM_TEMPV(n,panel_size,maxsuper,rowblk)*/)/* * 64*//*sizeof(double)*/;
 
 	    if ( whichspace == LU_space_t.SYSTEM )
 		iworkptr[0] = (int []) intCalloc(isize/32/*sizeof(int)*/);
@@ -487,7 +487,8 @@ public class Dlu_pdmemory {
 	    int maxsuper = sp_ienv(3);
 	    int rowblk   = sp_ienv(4);
 	    dense[0] = dworkptr;
-	    tempv[0] = dense[0] + panel_size*n;
+//	    tempv[0] = dense[0] + panel_size*n;
+	    tempv[0] = new double[NUM_TEMPV(n,panel_size,maxsuper,rowblk)];
 	    dfill (dense[0], n * panel_size, zero);
 	    dfill (tempv[0], NUM_TEMPV(n,panel_size,maxsuper,rowblk), zero);
 	}

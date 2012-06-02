@@ -46,6 +46,7 @@ public class Dlu_pdgstrf_column_dfs {
 			   int repfnz[],   /* modified */
 			   int xprune[],   /* modified */
 			   int marker2[],  /* modified */
+			   int marker2_offset,
 			   int parent[],   /* working array */
 			   int xplore[],   /* working array */
 			   pxgstrf_shared_t pxgstrf_shared /* modified */
@@ -122,9 +123,9 @@ public class Dlu_pdgstrf_column_dfs {
 		krow = col_lsub[k];
 		if ( perm_r[krow] == EMPTY ) { /* krow is in L */
 		    ++no_lsub;
-		    if (marker2[krow] != jcolm1)
+		    if (marker2[marker2_offset+krow] != jcolm1)
 		        samesuper = NO.ordinal(); /* row subset test */
-		    marker2[krow] = jcol;
+		    marker2[marker2_offset+krow] = jcol;
 		}
 	    }
 
@@ -141,8 +142,8 @@ public class Dlu_pdgstrf_column_dfs {
 		krow = col_lsub[k];
 
 		/* if krow was visited before, go to the next nonzero */
-		if ( marker2[krow] == jcol ) continue;
-		marker2[krow] = jcol;
+		if ( marker2[marker2_offset+krow] == jcol ) continue;
+		marker2[marker2_offset+krow] = jcol;
 		kperm = perm_r[krow];
 	if ( DEBUGlevel>=3 ) {
 	  if (jcol == BADCOL)
@@ -197,10 +198,10 @@ public class Dlu_pdgstrf_column_dfs {
 
 				kchild = lsub[xdfs];
 				xdfs++;
-				chmark = marker2[kchild];
+				chmark = marker2[marker2_offset+kchild];
 
 				if ( chmark != jcol ) { /* Not reached yet */
-				    marker2[kchild] = jcol;
+				    marker2[marker2_offset+kchild] = jcol;
 				    chperm = perm_r[kchild];
 
 				    if ( chperm == EMPTY ) {

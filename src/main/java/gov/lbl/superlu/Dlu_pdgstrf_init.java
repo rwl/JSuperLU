@@ -138,7 +138,7 @@ public class Dlu_pdgstrf_init {
 	    superlumt_options.panel_size = panel_size;
 	    superlumt_options.relax = relax;
 	    superlumt_options.diag_pivot_thresh = diag_pivot_thresh;
-	    superlumt_options.usepr = usepr;
+	    superlumt_options.usepr[0] = usepr;
 	    superlumt_options.drop_tol = drop_tol;
 	    superlumt_options.SymmetricMode = NO;
 	    superlumt_options.PrintStat = NO;

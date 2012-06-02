@@ -308,7 +308,7 @@ public class Dlu_slu_mt_util {
 	    double     diag_pivot_thresh;
 	    double     drop_tol;
 	    colperm_t  ColPerm;
-	    yes_no_t   usepr;
+	    yes_no_t[]   usepr = new yes_no_t[1];
 	    yes_no_t   SymmetricMode;
 	    yes_no_t   PrintStat;
 

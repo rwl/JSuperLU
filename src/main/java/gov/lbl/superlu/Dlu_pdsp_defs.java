@@ -179,7 +179,7 @@ public class Dlu_pdsp_defs {
 	/* Arguments passed to each thread. */
 	static class pdgstrf_threadarg_t {
 	    int  pnum; /* process number */
-	    int  info; /* error code returned from each thread */
+	    int[]  info = new int[1]; /* error code returned from each thread */
 	    superlumt_options_t superlumt_options;
 	    pxgstrf_shared_t  pxgstrf_shared; /* shared for LU factorization */
 	}

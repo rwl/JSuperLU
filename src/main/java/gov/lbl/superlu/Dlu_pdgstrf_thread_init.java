@@ -131,7 +131,7 @@ public class Dlu_pdgstrf_thread_init {
 	    pxgstrf_shared.Gstat        = Gstat;
 	    pxgstrf_shared.info         = info[0];
 
-	    if ( options.usepr == YES ) {
+	    if ( options.usepr[0] == YES ) {
 		/* Compute the inverse of perm_r */
 		for (i = 0; i < n; ++i) inv_perm_r[perm_r[i]] = i;
 	    }
@@ -169,7 +169,7 @@ public class Dlu_pdgstrf_thread_init {
 	    pdgstrf_threadarg = new pdgstrf_threadarg_t[nprocs];
 	    for (i = 0; i < nprocs; ++i) {
 	        pdgstrf_threadarg[i].pnum = i;
-	        pdgstrf_threadarg[i].info = 0;
+	        pdgstrf_threadarg[i].info[0] = 0;
 	        pdgstrf_threadarg[i].superlumt_options = options;
 	        pdgstrf_threadarg[i].pxgstrf_shared = pxgstrf_shared;
 	    }

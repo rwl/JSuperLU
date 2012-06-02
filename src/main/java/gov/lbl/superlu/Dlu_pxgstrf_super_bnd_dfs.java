@@ -32,6 +32,7 @@ public class Dlu_pxgstrf_super_bnd_dfs {
 			      int        xprune[],   /* in */
 			      int        ispruned[], /* in */
 			      int        marker[],   /* modified */
+			      int        marker_offset,
 			      int        parent[],   /* working array */
 			      int        xplore[],   /* working array */
 			      pxgstrf_shared_t pxgstrf_shared /* modified */
@@ -82,13 +83,13 @@ public class Dlu_pxgstrf_super_bnd_dfs {
 		  krow = asub[k];
 
 		  /* krow was visited before, go to the next nonzero. */
-		  if ( marker[krow] == found ) continue;
+		  if ( marker[marker_offset+krow] == found ) continue;
 
 	  	  /* For each unmarked nbr krow of jj ...   */
 		  kperm = perm_r[krow];
 
 		  if ( kperm == EMPTY ) { /* krow is in L */
-		      marker[krow] = found;
+		      marker[marker_offset+krow] = found;
 		      ++nrow;
 		  } else {
 		      /* krow is in U: if its supernode-rep krep has been explored,
@@ -97,8 +98,8 @@ public class Dlu_pxgstrf_super_bnd_dfs {
 		      invp_rep = iperm_r[krep];
 
 		      /* Perform dfs starting at krep */
-	              if ( marker[invp_rep] != found ) {
-			  marker[invp_rep] = found;
+	              if ( marker[marker_offset+invp_rep] != found ) {
+			  marker[marker_offset+invp_rep] = found;
 			  parent[krep] = EMPTY;
 			  if ( ispruned[krep] != 0 ) {
 			      if ( SINGLETON( xsup_end, xsup_end, supno[krep] ) )
@@ -116,11 +117,11 @@ public class Dlu_pxgstrf_super_bnd_dfs {
 			      while ( xdfs < maxdfs ) {
 				  kchild = lsub[xdfs];
 				  xdfs++;
-				  if (marker[kchild] != found) { /* Not reached yet */
+				  if (marker[marker_offset+kchild] != found) { /* Not reached yet */
 				      chperm = perm_r[kchild];
 
 				      if ( chperm == EMPTY ) { /* kchild is in L */
-					  marker[kchild] = found;
+					  marker[marker_offset+kchild] = found;
 					  ++nrow;
 				      } else {
 					  /* kchild is in U:
@@ -131,8 +132,8 @@ public class Dlu_pxgstrf_super_bnd_dfs {
 					  invp_rep = iperm_r[chrep];
 
 					  /* Continue dfs at snode-rep of kchild */
-					  if ( marker[invp_rep] != found ) {
-					      marker[invp_rep] = found;
+					  if ( marker[marker_offset+invp_rep] != found ) {
+					      marker[marker_offset+invp_rep] = found;
 					      xplore[krep] = xdfs;
 					      xplore[m + krep] = maxdfs;
 					      parent[chrep] = krep;

@@ -16,6 +16,7 @@ import static gov.lbl.superlu.Dlu.printf;
 import static gov.lbl.superlu.Dlu_slu_mt_util.EMPTY;
 import static gov.lbl.superlu.Dlu_slu_mt_util.NO_MARKER;
 import static gov.lbl.superlu.Dlu_slu_mt_util.TIC;
+import static gov.lbl.superlu.Dlu_slu_mt_util.TOC;
 import static gov.lbl.superlu.Dlu_slu_mt_util.LOCOL;
 import static gov.lbl.superlu.Dlu_slu_mt_util.HICOL;
 import static gov.lbl.superlu.Dlu_slu_mt_util.BADPAN;
@@ -43,6 +44,7 @@ import static gov.lbl.superlu.Dlu_pmemory.intMalloc;
 
 import static gov.lbl.superlu.Dlu_pxgstrf_scheduler.pxgstrf_scheduler;
 import static gov.lbl.superlu.Dlu_pxgstrf_synch.panel_t.RELAXED_SNODE;
+import static gov.lbl.superlu.Dlu_pxgstrf_synch.pipe_state_t.DONE;
 import static gov.lbl.superlu.Dlu_pdgstrf_factor_snode.pdgstrf_factor_snode;
 import static gov.lbl.superlu.Dlu_pxgstrf_mark_busy_descends.pxgstrf_mark_busy_descends;
 import static gov.lbl.superlu.Dlu_pdgstrf_panel_dfs.pdgstrf_panel_dfs;
@@ -180,6 +182,7 @@ public class Dlu_pdgstrf_thread {
 	    int	      panel_lsub[][]; /* dense[]/panel_lsub[] pair forms a w-wide SPA */
 	    panel_lsub = new int[1][];
 	    int	      marker[][], marker1[], marker2[];
+	    int marker1_offset, marker2_offset;
 	    marker = new int[1][];
 	    int       lbusy[][]; /* "Local busy" array, indicates which descendants
 				 were busy when this panel's computation began.
@@ -204,16 +207,15 @@ public class Dlu_pdgstrf_thread {
 	    bcol = new int[1];
 	    jcol = new int[1];
 
-	if (PROFILE) {
 	    double utime[] = Gstat.utime;
-	    double t1, t2, t, stime;
-	    float flopcnt;
-	}
+	    double t1[], t2[], t[], stime = 0;
+	    t = new double[1];
+	    t1 = new double[1];
+	    t2 = new double[1];
+	    float flopcnt = 0;
 
-	if (PREDICT_OPT) {
 	    float  ops[] = Gstat.ops;
-	    float pdiv;
-	}
+	    float pdiv = 0;
 
 	if ( DEBUGlevel>=1 ) {
 	    printf("(%d) thr_arg. pnum %d, info %d\n", pnum, thr_arg.pnum, thr_arg.info);
@@ -231,7 +233,7 @@ public class Dlu_pdgstrf_thread {
 		info[0] += pdgstrf_memory_use(Glu.nzlmax, Glu.nzumax, Glu.nzlumax);
 		return null/*0*/;
 	    }
-	    pxgstrf_SetIWork(m, panel_size, iwork[0], segrep, parent, xplore,
+	    pxgstrf_SetIWork(m, panel_size, /*iwork, */segrep, parent, xplore,
 		     repfnz, panel_lsub, marker, lbusy);
 	    pdgstrf_SetRWork(m, panel_size, dwork[0], dense, tempv);
 
@@ -242,8 +244,10 @@ public class Dlu_pdgstrf_thread {
 	    ifill (marker[0], m * NO_MARKER, EMPTY);
 	    ifill (lbusy[0], m, EMPTY);
 	    jcol[0] = EMPTY;
-	    marker1 = marker[0] + m;
-	    marker2 = marker[0] + 2*m;
+	    marker1 = marker[0];
+	    marker1_offset = m;
+	    marker2 = marker[0];
+	    marker2_offset = 2*m;
 
 	if (PROFILE) {
 	    stime = SuperLU_timer_();
@@ -269,8 +273,8 @@ public class Dlu_pdgstrf_thread {
 	}
 
 	if (PROFILE) {
-		TOC(t2, t);
-		Gstat.procstat[pnum].skedtime += t2;
+		TOC(t2, t[0]);
+		Gstat.procstat[pnum].skedtime += t2[0];
 	}
 
 		if ( jcol[0] != EMPTY ) {
@@ -287,7 +291,7 @@ public class Dlu_pdgstrf_thread {
 		    flopcnt = Gstat.procstat[pnum].fcops;
 		    Gstat.panstat[jcol[0]].pnum = pnum;
 		    TIC(t1);
-		    Gstat.panstat[jcol[0]].starttime = t1;
+		    Gstat.panstat[jcol[0]].starttime = t1[0];
 	}
 		    if ( pxgstrf_shared.pan_status[jcol[0]].type == RELAXED_SNODE ) {
 
@@ -313,7 +317,7 @@ public class Dlu_pdgstrf_thread {
 			    pxgstrf_shared.spin_locks[jj] = 0;
 	if (PREDICT_OPT) {
 			pdiv = Gstat.procstat[pnum].fcops - pdiv;
-			cp_panel[jcol[0]].pdiv = pdiv;
+			Gstat.cp_panel[jcol[0]].pdiv = pdiv;
 	}
 		    } else { /* Regular panel */
 	if (PROFILE) {
@@ -333,8 +337,8 @@ public class Dlu_pdgstrf_thread {
 		   pnum, nseg1, w_lsub_end[0]);
 	}
 	if (PROFILE) {
-			TOC(t2, t);
-			utime[DFS.ordinal()] += t2;
+			TOC(t2, t[0]);
+			utime[DFS.ordinal()] += t2[0];
 	}
 			/* Numeric sup-panel updates in topological order.
 			 * On return, the update values are temporarily stored in
@@ -360,7 +364,7 @@ public class Dlu_pdgstrf_thread {
 			jcolm1 = jcol[0] - 1;
 			itemp = xlsub_end[jcolm1];
 			for (k = xlsub[jcolm1]; k < itemp; ++k)
-			    marker2[lsub[k]] = jcolm1;
+			    marker2[marker2_offset+lsub[k]] = jcolm1;
 	if (PREDICT_OPT) {
 			pdiv = Gstat.procstat[pnum].fcops;
 	}
@@ -376,7 +380,7 @@ public class Dlu_pdgstrf_thread {
 			        /* jj starts a supernode in H */
 				pxgstrf_super_bnd_dfs
 				    (pnum, m, n, jj, super_bnd[jj], A, perm_r,
-				     inv_perm_r, xprune, ispruned, marker1, parent[0],
+				     inv_perm_r, xprune, ispruned, marker1, marker1_offset, parent[0],
 				     xplore[0], pxgstrf_shared);
 			    }
 
@@ -384,12 +388,12 @@ public class Dlu_pdgstrf_thread {
 				            (pnum, m, jj, jcol[0], perm_r, ispruned,
 					     panel_lsub[k],w_lsub_end[jj-jcol[0]],
 					     super_bnd, nseg, segrep[0],
-					     repfnz[k], xprune, marker2,
+					     repfnz[k], xprune, marker2, marker2_offset,
 					     parent[0], xplore[0], pxgstrf_shared)) != 0 )
 				return null/*0*/;
 	if (PROFILE) {
-			    TOC(t2, t);
-			    utime[DFS.ordinal()] += t2;
+			    TOC(t2, t[0]);
+			    utime[DFS.ordinal()] += t2[0];
 	}
 			    /* On return, the L supernode is gathered into the
 			       global storage. */
@@ -438,15 +442,18 @@ public class Dlu_pdgstrf_thread {
 
 	if (PREDICT_OPT) {
 			pdiv = Gstat.procstat[pnum].fcops - pdiv;
-			cp_panel[jcol[0]].pdiv = pdiv;
+			Gstat.cp_panel[jcol[0]].pdiv = pdiv;
 	}
 
 		    } /* else regular panel ... */
 
-		    STATE( jcol[0] ) = DONE; /* Release panel jcol. */
+		    //STATE( jcol[0] ) = DONE; /* Release panel jcol. */
+		    pxgstrf_shared.pan_status[jcol[0]].state = DONE;
 
 	if (PROFILE) {
-		    TOC(Gstat.panstat[jcol[0]].fctime, t1);
+			double[] tx = new double[1];
+		    TOC(tx, t1[0]);
+		    Gstat.panstat[jcol[0]].fctime = tx[0];
 		    Gstat.panstat[jcol[0]].flopcnt += Gstat.procstat[pnum].fcops - flopcnt;
 		    /*if ( Glu.tasks_remain < P ) {
 			flops_last_P_panels += Gstat.panstat[jcol].flopcnt;
@@ -455,12 +462,12 @@ public class Dlu_pdgstrf_thread {
 		    } */
 	}
 
-		}
+		} else {
 	if (PROFILE) {
-		else { /* No panel from the task queue - wait and try again */
-		    Gstat.procstat[pnum].skedwaits++;
-		}
+		/* No panel from the task queue - wait and try again */
+		Gstat.procstat[pnum].skedwaits++;
 	}
+		}
 
 	    } /* while there are more panels */
 

@@ -131,9 +131,9 @@ public class Dlu_pdgstrf_thread_finalize {
 	    iinfo = 0;
 	    nprocs = superlumt_options.nprocs;
 	    for (i = 0; i < nprocs; ++i) {
-	        if ( pdgstrf_threadarg[i].info != 0 ) {
-		    if (iinfo != 0) iinfo=SUPERLU_MIN(iinfo, pdgstrf_threadarg[i].info);
-		    else iinfo = pdgstrf_threadarg[i].info;
+	        if ( pdgstrf_threadarg[i].info[0] != 0 ) {
+		    if (iinfo != 0) iinfo=SUPERLU_MIN(iinfo, pdgstrf_threadarg[i].info[0]);
+		    else iinfo = pdgstrf_threadarg[i].info[0];
 		}
 	    }
 	    pxgstrf_shared.info = iinfo;
