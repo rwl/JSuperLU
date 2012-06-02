@@ -48,7 +48,7 @@ import static gov.lbl.superlu.Dlu.stdout;
 public class Dlu_pdgssv {
 
 	@SuppressWarnings("unused")
-	static
+	public static
 	void
 	pdgssv(int nprocs, SuperMatrix A, int perm_c[], int perm_r[],
 	       SuperMatrix L, SuperMatrix U, SuperMatrix B, int[] info )

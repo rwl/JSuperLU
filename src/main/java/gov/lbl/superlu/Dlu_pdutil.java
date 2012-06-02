@@ -48,7 +48,7 @@ import static gov.lbl.superlu.Dlu_dsp_blas3.sp_dgemm;
 
 public class Dlu_pdutil {
 
-	static
+	public static
 	void
 	dCreate_CompCol_Matrix(SuperMatrix A, int m, int n, int nnz, double nzval[],
 			      int rowind[], int colptr[],
@@ -69,7 +69,7 @@ public class Dlu_pdutil {
 	    Astore.colptr = colptr;
 	}
 
-	static
+	public static
 	void
 	dCreate_CompCol_Permuted(SuperMatrix A, int m, int n, int nnz, double nzval[],
 				 int rowind[], int colbeg[], int colend[],
@@ -93,7 +93,7 @@ public class Dlu_pdutil {
 	/*
 	 * Convert a row compressed storage into a column compressed storage.
 	 */
-	static
+	public static
 	void
 	dCompRow_to_CompCol(int m, int n, int nnz,
 			    double a[], int colind[], int rowptr[],
@@ -131,7 +131,7 @@ public class Dlu_pdutil {
 
 
 	/* Copy matrix A into matrix B. */
-	static
+	public static
 	void
 	dCopy_CompCol_Matrix(SuperMatrix A, SuperMatrix B)
 	{
@@ -153,7 +153,7 @@ public class Dlu_pdutil {
 	}
 
 
-	static
+	public static
 	int dPrint_CompCol_Matrix(SuperMatrix A)
 	{
 	    NCformat     Astore;
@@ -176,7 +176,7 @@ public class Dlu_pdutil {
 	    return 0;
 	}
 
-	static
+	public static
 	int dPrint_Dense_Matrix(SuperMatrix A)
 	{
 	    DNformat     Astore;
@@ -195,7 +195,7 @@ public class Dlu_pdutil {
 	    return 0;
 	}
 
-	static
+	public static
 	void
 	dCreate_Dense_Matrix(SuperMatrix X, int m, int n, double x[], int ldx,
 			    Stype_t stype, Dtype_t dtype, Mtype_t mtype)
@@ -213,7 +213,7 @@ public class Dlu_pdutil {
 	    Xstore.nzval = (double []) x;
 	}
 
-	static
+	public static
 	void
 	dCopy_Dense_Matrix(int M, int N, double X[], int ldx, double Y[], int ldy)
 	{
@@ -231,7 +231,7 @@ public class Dlu_pdutil {
 	            Y[i + j*ldy] = X[i + j*ldx];
 	}
 
-	static
+	public static
 	void
 	dCreate_SuperNode_Matrix(SuperMatrix L, int m, int n, int nnz, double nzval[],
 				int nzval_colptr[], int rowind[], int rowind_colptr[],
@@ -258,7 +258,7 @@ public class Dlu_pdutil {
 
 	}
 
-	static
+	public static
 	void
 	dCreate_SuperNode_Permuted(SuperMatrix L, int m, int n, int nnz,
 				   double nzval[],
@@ -295,7 +295,7 @@ public class Dlu_pdutil {
 	/*
 	 * Diagnostic print of column "jcol" in the U/L factor.
 	 */
-	static
+	public static
 	void
 	dprint_lu_col(int pnum, String msg, int pcol, int jcol, int w, int pivrow,
 		      int xprune[], GlobalLU_t Glu)
@@ -339,7 +339,7 @@ public class Dlu_pdutil {
 	 * this invariant should be mantained before and after calling some
 	 * numeric update routines, such as "panel_bmod" and "column_bmod".
 	 */
-	static
+	public static
 	void
 	dcheck_zero_vec(int pnum, String msg, int n, double vec[])
 	{
@@ -360,7 +360,7 @@ public class Dlu_pdutil {
 	}
 
 
-	static
+	public static
 	void
 	dGenXtrue(int n, int nrhs, double x[], int ldx)
 	{
@@ -375,7 +375,7 @@ public class Dlu_pdutil {
 	/*
 	 * Let rhs[i] = sum of i-th row of A, so the solution vector is all 1's
 	 */
-	static
+	public static
 	void
 	dFillRHS(trans_t trans, int nrhs, double x[], int ldx, SuperMatrix A, SuperMatrix B)
 	{
@@ -400,7 +400,7 @@ public class Dlu_pdutil {
 	/*
 	 * Fills a double precision array with a given value.
 	 */
-	static
+	public static
 	void
 	dfill(double a[], int alen, double dval)
 	{
@@ -413,7 +413,7 @@ public class Dlu_pdutil {
 	/*
 	 * Check the inf-norm of the error vector
 	 */
-	static
+	public static
 	void dinf_norm_error(int nrhs, SuperMatrix X, double xtrue[])
 	{
 	    DNformat Xstore;
@@ -441,7 +441,7 @@ public class Dlu_pdutil {
 
 
 	/* Print performance of the code. */
-	static
+	public static
 	void
 	dPrintPerf(SuperMatrix L, SuperMatrix U, superlu_memusage_t superlu_memusage,
 		double rpg, double rcond, double ferr[],
@@ -504,13 +504,13 @@ public class Dlu_pdutil {
 	}
 
 
-	static
+	public static
 	int print_double_vec(String what, int n, int ind[], double vec[])
 	{
 		return print_double_vec(what, n, ind, 0, vec, 0);
 	}
 
-	static
+	public static
 	int print_double_vec(String what, int n, int ind[], int ind_offset,
 			double vec[], int vec_offset)
 	{

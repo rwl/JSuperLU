@@ -29,7 +29,7 @@ import static gov.lbl.superlu.Dlu.exit;
 
 public class Dlu_pmemory {
 
-	static void
+	public static void
 	XPAND_HINT(String memtype, int new_next, int jcol, int param) {
 		fprintf(stderr, "Storage for %12s exceeded; Current column %d; Need at least %d;\n",
 		memtype, jcol, new_next);
@@ -40,7 +40,7 @@ public class Dlu_pmemory {
 	/*
 	 * Set up pointers for integer working arrays.
 	 */
-	static void
+	public static void
 	pxgstrf_SetIWork(int n, int panel_size, /*int iworkptr[], */int segrep[][],
 			 int parent[][], int xplore[][], int repfnz[][], int panel_lsub[][],
 			 int marker[][], int lbusy[][])
@@ -65,7 +65,7 @@ public class Dlu_pmemory {
 	}
 
 
-	static
+	public static
 	void
 	copy_mem_int(int howmany, int old[], int new_[])
 	{
@@ -76,7 +76,7 @@ public class Dlu_pmemory {
 	}
 
 
-	static
+	public static
 	void
 	user_bcopy(char src[], char dest[], int bytes)
 	{
@@ -91,7 +91,7 @@ public class Dlu_pmemory {
 
 
 	@SuppressWarnings("unused")
-	static
+	public static
 	int[] intMalloc(int n)
 	{
 	    int buf[];
@@ -103,7 +103,7 @@ public class Dlu_pmemory {
 	}
 
 	@SuppressWarnings("unused")
-	static
+	public static
 	int[] intCalloc(int n)
 	{
 	    int buf[];
@@ -123,7 +123,7 @@ public class Dlu_pmemory {
 	 * Return value: 0 - success
 	 *              >0 - number of bytes allocated when run out of space
 	 */
-	static
+	public static
 	int
 	Glu_alloc(
 		  final int pnum,     /* process number */
@@ -237,7 +237,7 @@ public class Dlu_pmemory {
 	 * Dynamically set up storage image in lusup[*], using the supernode
 	 * boundaries in H.
 	 */
-	static
+	public static
 	int
 	DynamicSetMap(
 		      final int pnum,      /* process number */

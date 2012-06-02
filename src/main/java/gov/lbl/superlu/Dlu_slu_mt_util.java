@@ -139,33 +139,33 @@ public class Dlu_slu_mt_util {
 	/*
 	 * Constants
 	 */
-	static final int EMPTY =	(-1);
-	static final int FALSE =	0;
-	static final int TRUE =	1;
+	public static final int EMPTY =	(-1);
+	public static final int FALSE =	0;
+	public static final int TRUE =	1;
 
 	/**********************
 	  Enumerated constants
 	  *********************/
-	enum yes_no_t {NO, YES}
-	enum trans_t {NOTRANS, TRANS, CONJ}
-	enum fact_t {DOFACT, EQUILIBRATE, FACTORED}
-	enum colperm_t {NATURAL, MMD_ATA, MMD_AT_PLUS_A, COLAMD,
+	public enum yes_no_t {NO, YES}
+	public enum trans_t {NOTRANS, TRANS, CONJ}
+	public enum fact_t {DOFACT, EQUILIBRATE, FACTORED}
+	public enum colperm_t {NATURAL, MMD_ATA, MMD_AT_PLUS_A, COLAMD,
 		      METIS_AT_PLUS_A, PARMETIS, MY_PERMC}
-	enum equed_t {NOEQUIL, ROW, COL, BOTH}
-	enum MemType {LUSUP, UCOL, LSUB, USUB}
+	public enum equed_t {NOEQUIL, ROW, COL, BOTH}
+	public enum MemType {LUSUP, UCOL, LSUB, USUB}
 
 	/* Number of marker arrays used in the symbolic factorization,
 	   each of size nrow. */
-	static final int NO_MARKER =     3;
+	public static final int NO_MARKER =     3;
 
-	static final int LOCOL =    70;
-	static final int HICOL =    78;
-	static final int BADROW =   44;
-	static final int BADCOL =   35;
-	static final int BADPAN =   BADCOL;
-	static final int BADREP =   35;
+	public static final int LOCOL =    70;
+	public static final int HICOL =    78;
+	public static final int BADROW =   44;
+	public static final int BADCOL =   35;
+	public static final int BADPAN =   BADCOL;
+	public static final int BADREP =   35;
 
-	enum PhaseType {
+	public enum PhaseType {
 	    RELAX,
 	    COLPERM,
 	    ETREE,
@@ -298,34 +298,34 @@ public class Dlu_slu_mt_util {
 	 *
 	 *
 	 */
-	static class superlumt_options_t {
-	    int        nprocs;
-	    fact_t     fact;
-	    trans_t    trans;
-	    yes_no_t   refact;
-	    int        panel_size;
-	    int        relax;
-	    double     diag_pivot_thresh;
-	    double     drop_tol;
-	    colperm_t  ColPerm;
-	    yes_no_t[]   usepr = new yes_no_t[1];
-	    yes_no_t   SymmetricMode;
-	    yes_no_t   PrintStat;
+	public static class superlumt_options_t {
+		public int        nprocs;
+		public fact_t     fact;
+		public trans_t    trans;
+		public yes_no_t   refact;
+		public int        panel_size;
+		public int        relax;
+		public double     diag_pivot_thresh;
+		public double     drop_tol;
+		public colperm_t  ColPerm;
+		public yes_no_t[]   usepr = new yes_no_t[1];
+		public yes_no_t   SymmetricMode;
+		public yes_no_t   PrintStat;
 
 	    /* The following arrays are persistent during repeated factorizations. */
-	    int  perm_c[];
-	    int  perm_r[];
-	    double work[];
-	    int  lwork;
+		public int  perm_c[];
+		public int  perm_r[];
+		public double work[];
+		public int  lwork;
 
 	    /* The following structural arrays are computed internally by
 	       dsp_colorder(), so the user does not provide them on input.
 	       These 3 arrays are computed in the first factorization, and are
 	       re-used in the subsequent factors of the matrices with the same
 	       nonzero structure. */
-	    int  etree[];
-	    int  colcnt_h[];
-	    int  part_super_h[];
+		public int  etree[];
+		public int  colcnt_h[];
+		public int  part_super_h[];
 	}
 
 	/* ----------------------------------------------
@@ -333,135 +333,135 @@ public class Dlu_slu_mt_util {
 	   ---------------------------------------------- */
 
 	/* The statistics to be kept by each processor. */
-	static class procstat_t {
-	    int	    panels;    /* number of panels taken */
-	    float   fcops;     /* factor floating-point operations */
-	    double  fctime;    /* factor time */
-	    int     skedwaits; /* how many times the processor fails to get a task */
-	    double  skedtime;  /* time spent in the scheduler */
-	    double  cs_time;   /* time spent in the critical sections */
-	    double  spintime;  /* spin-wait time */
-	    int     pruned;
-	    int     unpruned;
+	public static class procstat_t {
+		public int	    panels;    /* number of panels taken */
+		public float   fcops;     /* factor floating-point operations */
+		public double  fctime;    /* factor time */
+		public int     skedwaits; /* how many times the processor fails to get a task */
+		public double  skedtime;  /* time spent in the scheduler */
+		public double  cs_time;   /* time spent in the critical sections */
+		public double  spintime;  /* spin-wait time */
+		public int     pruned;
+		public int     unpruned;
 	}
 
 
 	/* Statistics about each panel. */
 
-	static class panstat_t {
-	    int    size;      /* size of the panel */
-	    int    pnum;      /* which processor grabs this panel */
-	    double starttime; /* at waht time this panel is assigned to a proc */
-	    double fctime;    /* factorization time */
-	    float  flopcnt;   /* floating-point operations */
-	    int    pipewaits; /* how many times the panel waited during pipelining */
-	    double spintime;  /* spin waiting time during pipelining */
+	public static class panstat_t {
+		public int    size;      /* size of the panel */
+		public int    pnum;      /* which processor grabs this panel */
+		public double starttime; /* at waht time this panel is assigned to a proc */
+		public double fctime;    /* factorization time */
+		public float  flopcnt;   /* floating-point operations */
+		public int    pipewaits; /* how many times the panel waited during pipelining */
+		public double spintime;  /* spin waiting time during pipelining */
 	}
 
 	/* How was a panel selected by the scheduler */
-	enum how_selected_t {NOPIPE, DADPAN, PIPE}
+	public enum how_selected_t {NOPIPE, DADPAN, PIPE}
 
 	/* Headers for 4 types of dynamatically managed memory */
-	static class ExpHeader {//e_node {
-	    int size;      /* length of the memory that has been used */
-	    double mem[];  /* pointer to the new malloc'd store */
+	public static class ExpHeader {//e_node {
+		public int size;      /* length of the memory that has been used */
+		public double mem[];  /* pointer to the new malloc'd store */
 	}
 
 	/* The structure to keep track of memory usage. */
-	static class superlu_memusage_t {
-	    float for_lu;
-	    float total_needed;
-	    int   expansions;
+	public static class superlu_memusage_t {
+		public float for_lu;
+		public float total_needed;
+		public int   expansions;
 	}
 
-	static class stat_relax_t {
-	     float flops;
-	     int     nzs;
-	     double  fctime;
+	public static class stat_relax_t {
+		public float flops;
+		public int     nzs;
+		public double  fctime;
 	}
 
-	static class stat_col_t {
-	     float flops;
-	     int nzs;
-	     double fctime;
+	public static class stat_col_t {
+		public float flops;
+		public int nzs;
+		public double fctime;
 	}
 
-	static class stat_snode_t {
-	     int ncols;
-	     float flops;
-	     int nzs;
-	     double fctime;
+	public static class stat_snode_t {
+		public int ncols;
+		public float flops;
+		public int nzs;
+		public double fctime;
 	}
 
 	/* -------------------------------------------------------------------
 	   The definitions below are used to simulate parallel execution time.
 	   ------------------------------------------------------------------- */
-	static class cp_panel_t {
-	    float est;  /* earliest (possible) start time of the panel */
-	    float pdiv; /* time in flops spent in the (inner) panel factorization */
+	public static class cp_panel_t {
+		public float est;  /* earliest (possible) start time of the panel */
+		public float pdiv; /* time in flops spent in the (inner) panel factorization */
 	}
 
-	static class desc_eft_t {
-	    float eft;  /* earliest finishing time */
-	    float pmod; /* pmod update to the ancestor panel */
+	public static class desc_eft_t {
+		public float eft;  /* earliest finishing time */
+		public float pmod; /* pmod update to the ancestor panel */
 	}
 
 	/* All statistics. */
-	static class Gstat_t {
-	    int     	panel_histo[];	/* Panel size distribution */
-	    double  	utime[];
-	    float 	ops[];
-	    procstat_t 	procstat[];
-	    panstat_t	panstat[];
-	    int      	num_panels;
-	    float     	dom_flopcnt;
-	    float     	flops_last_P_panels;
+	public static class Gstat_t {
+		public int     	panel_histo[];	/* Panel size distribution */
+		public double  	utime[];
+		public float 	ops[];
+		public procstat_t 	procstat[];
+		public panstat_t	panstat[];
+		public int      	num_panels;
+		public float     	dom_flopcnt;
+		public float     	flops_last_P_panels;
 	    /**/
-	    stat_relax_t stat_relax[];
-	    stat_col_t stat_col[];
-	    stat_snode_t stat_snode[];
-	    int panhows[];
-	    cp_panel_t cp_panel[]; /* panels on the critical path */
-	    desc_eft_t desc_eft[]; /* all we need to know from descendants */
-	    int        cp_firstkid[], cp_nextkid[]; /* linked list of children */
-	    int        height[];
-	    float      flops_by_height[];
+		public stat_relax_t stat_relax[];
+		public stat_col_t stat_col[];
+		public stat_snode_t stat_snode[];
+		public int panhows[];
+		public cp_panel_t cp_panel[]; /* panels on the critical path */
+		public desc_eft_t desc_eft[]; /* all we need to know from descendants */
+		public int        cp_firstkid[], cp_nextkid[]; /* linked list of children */
+		public int        height[];
+		public float      flops_by_height[];
 	}
 
-	static class Branch {
-	    int root, first_desc, which_bin;
-	    Branch next;
+	public static class Branch {
+		public int root, first_desc, which_bin;
+		public Branch next;
 	};
 
 
 	/* Statistics for supernode and panel size */
-	static int 	no_panels;
-	static float   sum_w;          /* Sum (Wi) */
-	static float 	sum_np_w;       /* Sum (Npi*Wi) */
-	static int 	max_np;
-	static int     no_sups;
-	static float   sum_sup;        /* Sum (Supi) */
-	static int     max_sup;
-	static float reuse_flops;    /* Triangular solve and matrix vector multiply */
-	static float   reuse_data;     /* Doubles in updating supernode */
+	public static int 	no_panels;
+	public static float   sum_w;          /* Sum (Wi) */
+	public static float 	sum_np_w;       /* Sum (Npi*Wi) */
+	public static int 	max_np;
+	public static int     no_sups;
+	public static float   sum_sup;        /* Sum (Supi) */
+	public static int     max_sup;
+	public static float reuse_flops;    /* Triangular solve and matrix vector multiply */
+	public static float   reuse_data;     /* Doubles in updating supernode */
 
 	/* Statistics for blas operations */
-	static int     num_blas;       /* no of BLAS2 operations, including trsv/gemv */
-	static int     max_blas_n;     /* max dimension n in tri-solve and mat-vec */
-	static int     min_blas_n;     /* min dimension n in tri-solve and mat-vec */
-	static float   sum_blas_n;     /* sum of "        "        " */
-	static int     max_gemv_m;     /* max dimension m in mat-vec */
-	static int     min_gemv_m;     /* max dimension m in mat-vec */
-	static float   sum_gemv_m;     /* sum of "        "        " */
-	static int     lda_blas_m;
-	static int     lda_blas_n;
-	static float gemv_ops[];      /* flops distribution on (m,n) */
-	static float trsv_ops[];      /* flops distribution on n */
+	public static int     num_blas;       /* no of BLAS2 operations, including trsv/gemv */
+	public static int     max_blas_n;     /* max dimension n in tri-solve and mat-vec */
+	public static int     min_blas_n;     /* min dimension n in tri-solve and mat-vec */
+	public static float   sum_blas_n;     /* sum of "        "        " */
+	public static int     max_gemv_m;     /* max dimension m in mat-vec */
+	public static int     min_gemv_m;     /* max dimension m in mat-vec */
+	public static float   sum_gemv_m;     /* sum of "        "        " */
+	public static int     lda_blas_m;
+	public static int     lda_blas_n;
+	public static float gemv_ops[];      /* flops distribution on (m,n) */
+	public static float trsv_ops[];      /* flops distribution on n */
 
-	static double i_trsv_ops(double[] trsv_ops, int i) {
+	public static double i_trsv_ops(double[] trsv_ops, int i) {
 		return trsv_ops[i];
 	}
-	static int ij_gemv_ops(int[] gemv_ops, int i, int j) {
+	public static int ij_gemv_ops(int[] gemv_ops, int i, int j) {
 		return gemv_ops[j*lda_blas_m + i];
 	}
 

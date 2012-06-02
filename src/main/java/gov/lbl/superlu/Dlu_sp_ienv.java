@@ -5,7 +5,7 @@ import static gov.lbl.superlu.Dlu_xerbla_.xerbla_;
 
 public class Dlu_sp_ienv {
 
-	static
+	public static
 	int
 	sp_ienv(int ispec)
 	{

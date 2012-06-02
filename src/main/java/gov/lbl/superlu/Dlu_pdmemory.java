@@ -54,16 +54,16 @@ public class Dlu_pdmemory {
 	/* ------------------
 	   Constants & Macros
 	   ------------------ */
-	static final double EXPAND   = 1.5;
-	static final int NO_MEMTYPE  = 4;      /* 0: lusup;
+	public static final double EXPAND   = 1.5;
+	public static final int NO_MEMTYPE  = 4;      /* 0: lusup;
 				      1: ucol;
 				      2: lsub;
 				      3: usub */
-	static int GluIntArray(int n) {
+	public static int GluIntArray(int n) {
 		return 9 * (n) + 5;
 	}
 
-	static class LU_stack_t {
+	public static class LU_stack_t {
 	    int  size;
 	    int  used;
 	    int  top1;  /* grow upward, relative to &array[0] */
@@ -71,29 +71,29 @@ public class Dlu_pdmemory {
 	    double array[];
 	}
 
-	enum stack_end_t {HEAD, TAIL}
-	enum LU_space_t {SYSTEM, USER}
+	public enum stack_end_t {HEAD, TAIL}
+	public enum LU_space_t {SYSTEM, USER}
 
-	static ExpHeader dexpanders[] = null; /* Array of pointers to 4 types of memory */
+	public static ExpHeader dexpanders[] = null; /* Array of pointers to 4 types of memory */
 
-	static LU_stack_t stack;
-	static int        no_expand;
-	static int        ndim;
-	static LU_space_t whichspace; /* 0 - system malloc'd; 1 - user provided */
+	public static LU_stack_t stack;
+	public static int        no_expand;
+	public static int        ndim;
+	public static LU_space_t whichspace; /* 0 - system malloc'd; 1 - user provided */
 
 	/* Macros to manipulate stack */
-	static boolean StackFull(int x) {
+	public static boolean StackFull(int x) {
 		return x + stack.used >= stack.size;
 	}
 //	static boolean NotDoubleAlign(int addr) ( (long int)addr & 7 )
 //	static boolean DoubleAlign(int addr)    ( ((long int)addr + 7) & ~7L )
 
-	static double Reduce(double alpha) {
+	public static double Reduce(double alpha) {
 		return (alpha + 1) / 2;     /* i.e. (alpha-1)/2 + 1 */
 	}
 
 	/* temporary space used by BLAS calls */
-	static int NUM_TEMPV(int n,int w,int t,int b) {
+	public static int NUM_TEMPV(int n,int w,int t,int b) {
 		return SUPERLU_MAX( 2*n, (t + b)*w );
 	}
 
@@ -102,7 +102,7 @@ public class Dlu_pdmemory {
 	 *    lwork = 0: use system malloc;
 	 *    lwork > 0: use user-supplied work[] space.
 	 */
-	static
+	public static
 	void pdgstrf_SetupSpace(double work[], int lwork)
 	{
 	    if ( lwork == 0 ) {
@@ -138,7 +138,7 @@ public class Dlu_pdmemory {
 //	}
 
 
-	static
+	public static
 	void duser_free(int bytes, int which_end)
 	{
 	    if ( which_end == stack_end_t.HEAD.ordinal() ) {
@@ -151,7 +151,7 @@ public class Dlu_pdmemory {
 
 
 	/* Returns the working storage used during factorization */
-	static
+	public static
 	int superlu_dTempSpace(int n, int w, int p)
 	{
 	    float tmp, ptmp;
@@ -182,7 +182,7 @@ public class Dlu_pdmemory {
 	 *    o expansions (int)
 	 *      The number of memory expansions during the LU factorization.
 	 */
-	static
+	public static
 	int superlu_dQuerySpace(int P, SuperMatrix L, SuperMatrix U, int panel_size,
 	                       superlu_memusage_t superlu_memusage)
 	{
@@ -215,7 +215,7 @@ public class Dlu_pdmemory {
 	}
 
 
-	static
+	public static
 	float pdgstrf_memory_use(final int nzlmax, final int nzumax, final int nzlumax)
 	{
 	    float iword, dword, t;
@@ -237,7 +237,7 @@ public class Dlu_pdmemory {
 	 *     otherwise, return the amount of space actually allocated when
 	 *     memory allocation failure occurred.
 	 */
-	static
+	public static
 	float
 	pdgstrf_MemInit(int n, int annz, superlumt_options_t superlumt_options,
 			SuperMatrix L, SuperMatrix U, GlobalLU_t Glu)
@@ -425,7 +425,7 @@ public class Dlu_pdmemory {
 	 * Allocate known working storage. Returns 0 if success, otherwise
 	 * returns the number of bytes allocated so far when failure occurred.
 	 */
-	static
+	public static
 	int
 	pdgstrf_WorkInit(int n, int panel_size, int iworkptr[][], double dworkptr[][])
 	{
@@ -477,7 +477,7 @@ public class Dlu_pdmemory {
 	/*
 	 * Set up pointers for real working arrays.
 	 */
-	static
+	public static
 	void
 	pdgstrf_SetRWork(int n, int panel_size, double dworkptr[],
 			 double dense[][], double tempv[][])
@@ -496,7 +496,7 @@ public class Dlu_pdmemory {
 	/*
 	 * Free the working storage used by factor routines.
 	 */
-	static
+	public static
 	void pdgstrf_WorkFree(int iwork[], double dwork[], GlobalLU_t Glu)
 	{
 	    if ( whichspace == LU_space_t.SYSTEM ) {
@@ -514,7 +514,7 @@ public class Dlu_pdmemory {
 	 * Return value:   0 - successful return
 	 *               > 0 - number of bytes allocated when run out of space
 	 */
-	int
+	public int
 	pdgstrf_MemXpand_int(
 			 int jcol,
 			 int next, /* number of elements currently in the factors */
@@ -628,7 +628,7 @@ public class Dlu_pdmemory {
 	}
 
 
-	static
+	public static
 	void
 	copy_mem_double(int howmany, double old[], double new_[])
 	{
@@ -642,7 +642,7 @@ public class Dlu_pdmemory {
 	/*
 	 * Expand the existing storage to accommodate more fill-ins.
 	 */
-	static
+	public static
 	double[]
 	pdgstrf_expand(
 	                int prev_len[],  /* length used from previous call */
@@ -826,7 +826,7 @@ public class Dlu_pdmemory {
 	/*
 	 * Allocate storage for original matrix A
 	 */
-	static
+	public static
 	void
 	dallocateA(int n, int nnz, double a[][], int asub[][], int xa[][])
 	{
@@ -835,7 +835,7 @@ public class Dlu_pdmemory {
 	    xa[0]   = (int []) intMalloc(n+1);
 	}
 
-	static
+	public static
 	double[] doubleMalloc(int n)
 	{
 	    double buf[];
@@ -848,7 +848,7 @@ public class Dlu_pdmemory {
 	    return (buf);
 	}
 
-	static
+	public static
 	double[] doubleCalloc(int n)
 	{
 	    double[] buf;
@@ -878,7 +878,7 @@ public class Dlu_pdmemory {
 	 *   o Static scheme: number of nonzeros of all the supernodes in H.
 	 *   o Dynamic scheme: number of nonzeros of the relaxed supernodes.
 	 */
-	static
+	public static
 	int
 	dPresetMap(
 		  final int n,
